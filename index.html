@@ -553,8 +553,7 @@ footer{background:var(--bark);color:rgba(255,255,255,.45);text-align:center;padd
     const pic = sessionStorage.getItem('line_pic');
     if (name) renderLineBar({ name, pic });
     else renderLineBar(null);
-    // 自動從 Firestore 載入商品
-    await loadProductsFromFirestore();
+    // 商品由下方 setTimeout 載入
   });
 
   function renderLineBar(user) {
@@ -1105,6 +1104,12 @@ function setVideo(vid){const url=document.getElementById(`vurl-${vid}`).value.tr
 function saveVideo(vid,key,val){const idx=videos.findIndex(v=>v.id===vid);videos[idx][key]=val.trim();}
 
 initProducts();renderPages();renderGiftSelect();renderVideos();
+// 延遲載入 Firestore 商品（確保頁面已渲染）
+setTimeout(async ()=>{
+  if(typeof loadProductsFromFirestore==='function'){
+    await loadProductsFromFirestore();
+  }
+}, 800);
 </script>
 </body>
 </html>
