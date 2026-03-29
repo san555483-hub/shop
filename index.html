@@ -290,7 +290,7 @@ footer{background:var(--bark);color:rgba(255,255,255,.45);text-align:center;padd
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
   import { getAuth, signInWithPopup, signOut, GoogleAuthProvider, signInWithCustomToken, onAuthStateChanged }
     from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-  import { getFirestore, doc, setDoc, getDoc, collection, addDoc, getDocs, orderBy, query }
+  import { getFirestore, doc, setDoc, getDoc, collection, addDoc, getDocs, orderBy, query, writeBatch, deleteDoc }
     from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
   const firebaseConfig = {
@@ -320,6 +320,7 @@ footer{background:var(--bark);color:rgba(255,255,255,.45);text-align:center;padd
         `<span class="owner-badge">✏️ 店家模式</span>
          <span style="font-size:.68rem;color:var(--mid);font-family:'Noto Sans TC',sans-serif">${result.user.email}</span>
          <button class="owner-logout" onclick="ownerLogout()">登出</button>`;
+      document.getElementById('btn-save-products').style.display = 'flex';
       showToast('✓ 店家已登入');
     } catch(e) { showToast('登入失敗：' + e.message); }
   };
@@ -330,11 +331,75 @@ footer{background:var(--bark);color:rgba(255,255,255,.45);text-align:center;padd
     document.getElementById('edit-bar').style.display = 'none';
     document.getElementById('btn-gift-edit').style.display = 'none';
     document.getElementById('btn-discount-edit').style.display = 'none';
+    document.getElementById('btn-save-products').style.display = 'none';
     document.getElementById('owner-info').innerHTML =
       `<button class="google-login-btn" onclick="ownerGoogleLogin()">
          <img src="https://www.google.com/favicon.ico" style="width:12px;height:12px"> 店家登入
        </button>`;
     showToast('已登出店家模式');
+  };
+
+  // ── 商品 Firestore 儲存/讀取 ──
+  window.saveProductsToFirestore = async () => {
+    showToast('⏳ 儲存中…');
+    try {
+      const batch = writeBatch(db);
+      for(let p=0; p<5; p++){
+        for(let i=0; i<products[p].length; i++){
+          const prod = products[p][i];
+          const ref = doc(db, 'shop', 'products', 'pages', String(p), 'items', prod.id);
+          // imgSrc 可能很大，一起存
+          batch.set(ref, {
+            id: prod.id,
+            series: prod.series,
+            name: prod.name,
+            desc: prod.desc,
+            priceOrig: prod.priceOrig,
+            priceNow: prod.priceNow,
+            tag: prod.tag,
+            imgSrc: prod.imgSrc || '',
+            imgColor: prod.imgColor,
+            imgIcon: prod.imgIcon,
+            discType: prod.discType,
+            discThreshold: prod.discThreshold,
+            discAmount: prod.discAmount,
+            pageIndex: p,
+            itemIndex: i
+          });
+        }
+      }
+      await batch.commit();
+      showToast('✓ 商品已儲存到雲端！');
+    } catch(e) {
+      showToast('儲存失敗：' + e.message);
+      console.error(e);
+    }
+  };
+
+  window.loadProductsFromFirestore = async () => {
+    try {
+      let hasData = false;
+      for(let p=0; p<5; p++){
+        const colRef = collection(db, 'shop', 'products', 'pages', String(p), 'items');
+        const snap = await getDocs(colRef);
+        if(!snap.empty){
+          hasData = true;
+          snap.docs.forEach(d => {
+            const data = d.data();
+            const i = data.itemIndex;
+            if(products[p] && products[p][i]){
+              products[p][i] = {...products[p][i], ...data};
+            }
+          });
+        }
+      }
+      if(hasData){
+        renderPages();
+        console.log('✓ 商品已從 Firestore 載入');
+      }
+    } catch(e) {
+      console.warn('載入商品失敗', e);
+    }
   };
 
   // ── LINE Login ──
@@ -481,12 +546,14 @@ footer{background:var(--bark);color:rgba(255,255,255,.45);text-align:center;padd
   };
 
   // 頁面載入時，恢復 LINE 登入狀態
-  window.addEventListener('DOMContentLoaded', () => {
+  window.addEventListener('DOMContentLoaded', async () => {
     handleLineCallback();
     const name = sessionStorage.getItem('line_name');
     const pic = sessionStorage.getItem('line_pic');
     if (name) renderLineBar({ name, pic });
     else renderLineBar(null);
+    // 自動從 Firestore 載入商品
+    await loadProductsFromFirestore();
   });
 
   function renderLineBar(user) {
@@ -532,6 +599,7 @@ footer{background:var(--bark);color:rgba(255,255,255,.45);text-align:center;padd
       </div>
       <button class="h-btn" id="btn-gift-edit" onclick="openModal('gift-edit')" style="display:none">⚙️ <span>編輯贈品</span></button>
       <button class="h-btn" id="btn-discount-edit" onclick="openModal('discount-edit')" style="display:none">💰 <span>折扣設定</span></button>
+      <button class="h-btn" id="btn-save-products" onclick="saveProductsToFirestore()" style="display:none;background:rgba(122,140,110,.25);border-color:var(--moss)">☁️ <span>儲存商品</span></button>
       <button class="h-btn cart-btn" onclick="toggleCart()">🛒 <span>購物車</span><span class="cart-badge" id="cart-count">0</span></button>
     </div>
   </div>
