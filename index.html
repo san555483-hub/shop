@@ -394,7 +394,8 @@ footer{background:var(--bark);color:rgba(255,255,255,.45);text-align:center;padd
         }
       }
       if(hasData){
-        renderPages();
+        if(typeof renderPages==='function') renderPages();
+        else setTimeout(()=>{ if(typeof renderPages==='function') renderPages(); },500);
         console.log('✓ 商品已從 Firestore 載入');
       }
     } catch(e) {
@@ -1072,12 +1073,6 @@ function submitOrderStep1(){
   const giftVal=calcAutoGift(afterDiscount)||'';
   submitOrderToSheet(currentOrderNum,total,itemsText,giftVal,lineName,phone,method.name,address,note);
   if(typeof saveOrderToFirestore==='function') saveOrderToFirestore(currentOrderNum,total,itemsText,giftVal);
-}
-  // 同時寫入 GAS（Google Sheets）和 Firestore
-  const itemsText=cart.map(x=>`${x.name}×${x.qty}`).join('、');
-  submitOrderToSheet(currentOrderNum,total,itemsText,giftVal);
-  if(typeof saveOrderToFirestore==='function') saveOrderToFirestore(currentOrderNum,total,itemsText,giftVal);
-  document.getElementById('order-modal-wrap').classList.add('on');
 }
 function submitOrderToSheet(orderNum,total,items,gift,lineName,phone,shipping,address,note){
   const time=new Date().toLocaleString('zh-TW',{timeZone:'Asia/Taipei'});
