@@ -457,7 +457,7 @@ footer{background:var(--bark);color:rgba(255,255,255,.45);text-align:center;padd
       // Step 1: 換 access token（透過 GAS）
       const tokenRes = await fetch(GAS_URL_AUTH + '?action=lineToken', {
         method: 'POST',
-        headers: {'Content-Type':'application/json'},
+        headers: {'Content-Type':'text/plain'},
         body: JSON.stringify({
           code,
           verifier: sessionStorage.getItem('line_verifier'),
@@ -477,7 +477,7 @@ footer{background:var(--bark);color:rgba(255,255,255,.45);text-align:center;padd
       // Step 3: 向 GAS 要 Firebase Custom Token
       const ctRes = await fetch(GAS_URL_AUTH + '?action=customToken', {
         method: 'POST',
-        headers: {'Content-Type':'application/json'},
+        headers: {'Content-Type':'text/plain'},
         body: JSON.stringify({
           lineUserId: profile.userId,
           displayName: profile.displayName,
