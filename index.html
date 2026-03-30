@@ -377,6 +377,40 @@ footer{background:var(--bark);color:rgba(255,255,255,.45);text-align:center;padd
     }
   };
 
+  // ── 儲存/載入店家設定（運費、折扣、贈品）──
+  window.saveShopSettings = async () => {
+    try {
+      await setDoc(doc(db, 'shop', 'settings'), {
+        shippingConfig: JSON.parse(JSON.stringify(shippingConfig)),
+        discountRules: JSON.parse(JSON.stringify(discountRules)),
+        giftRules: JSON.parse(JSON.stringify(giftRules)),
+        updatedAt: new Date().toISOString()
+      });
+      console.log('✓ 店家設定已儲存');
+    } catch(e) {
+      console.warn('儲存設定失敗', e);
+    }
+  };
+
+  window.loadShopSettings = async () => {
+    try {
+      const snap = await getDoc(doc(db, 'shop', 'settings'));
+      if(snap.exists()) {
+        const data = snap.data();
+        if(data.shippingConfig) {
+          shippingConfig.freeThreshold = data.shippingConfig.freeThreshold;
+          shippingConfig.methods = data.shippingConfig.methods;
+        }
+        if(data.discountRules) discountRules = data.discountRules;
+        if(data.giftRules) giftRules = data.giftRules;
+        updateCart();
+        console.log('✓ 店家設定已載入');
+      }
+    } catch(e) {
+      console.warn('載入設定失敗', e);
+    }
+  };
+
   window.loadProductsFromFirestore = async () => {
     try {
       let hasData = false;
@@ -554,6 +588,8 @@ footer{background:var(--bark);color:rgba(255,255,255,.45);text-align:center;padd
     const pic = sessionStorage.getItem('line_pic');
     if (name) renderLineBar({ name, pic });
     else renderLineBar(null);
+    // 載入店家設定（運費、折扣、贈品）
+    await loadShopSettings();
     // 商品由下方 setTimeout 載入
   });
 
@@ -1026,7 +1062,7 @@ function updateCart(){
 function renderDiscountEditList(){document.getElementById('discount-edit-list').innerHTML=discountRules.map((r,i)=>`<div class="discount-edit-row"><span>滿</span><input type="number" value="${r.threshold}" id="dt-${i}" placeholder="金額" min="0"><span>折</span><input type="number" value="${r.discount}" id="dd-${i}" placeholder="折扣金額" min="0"><button class="discount-rm" onclick="removeDiscountRule(${i})">✕</button></div>`).join('');}
 function addDiscountRule(){discountRules.push({threshold:0,discount:0});renderDiscountEditList();}
 function removeDiscountRule(i){discountRules.splice(i,1);renderDiscountEditList();}
-function saveDiscounts(){discountRules=discountRules.map((_,i)=>({threshold:parseInt(document.getElementById(`dt-${i}`).value)||0,discount:parseInt(document.getElementById(`dd-${i}`).value)||0})).filter(r=>r.threshold>0&&r.discount>0);updateCart();closeModal('discount-edit');showToast('✓ 折扣設定已儲存');}
+function saveDiscounts(){discountRules=discountRules.map((_,i)=>({threshold:parseInt(document.getElementById(`dt-${i}`).value)||0,discount:parseInt(document.getElementById(`dd-${i}`).value)||0})).filter(r=>r.threshold>0&&r.discount>0);updateCart();closeModal('discount-edit');showToast('✓ 折扣設定已儲存');if(typeof saveShopSettings==='function')saveShopSettings();}
 function renderGiftSelect(){} // 已改為自動贈品
 
 function calcShipping(){
@@ -1070,11 +1106,12 @@ function saveShippingConfig(){
   }));
   closeModal('shipping-edit');
   showToast('✓ 運費設定已儲存');
+  if(typeof saveShopSettings==='function')saveShopSettings();
 }
 function renderGiftEditList(){document.getElementById('gift-edit-list').innerHTML=giftRules.map((r,i)=>`<div class="gift-edit-item"><span style="font-size:.7rem;color:var(--mid);white-space:nowrap">滿NT$</span><input class="gift-edit-input" type="number" value="${r.threshold}" id="gt-${i}" placeholder="門檻金額" style="width:80px"><span style="font-size:.7rem;color:var(--mid);white-space:nowrap">贈</span><input class="gift-edit-input" type="text" value="${r.name}" id="gn-${i}" placeholder="贈品名稱"><button class="gift-edit-rm" onclick="removeGift(${i})">✕</button></div>`).join('');}
 function addGiftOption(){giftRules.push({threshold:0,name:'新贈品（請修改）'});renderGiftEditList();}
 function removeGift(i){giftRules.splice(i,1);renderGiftEditList();}
-function saveGifts(){giftRules=giftRules.map((_,i)=>({threshold:parseInt(document.getElementById('gt-'+i).value)||0,name:document.getElementById('gn-'+i).value.trim()})).filter(r=>r.threshold>0&&r.name);updateCart();closeModal('gift-edit');showToast('✓ 贈品設定已儲存');}
+function saveGifts(){giftRules=giftRules.map((_,i)=>({threshold:parseInt(document.getElementById('gt-'+i).value)||0,name:document.getElementById('gn-'+i).value.trim()})).filter(r=>r.threshold>0&&r.name);updateCart();closeModal('gift-edit');showToast('✓ 贈品設定已儲存');if(typeof saveShopSettings==='function')saveShopSettings();}
 function switchPage(idx){document.querySelectorAll('.shop-page').forEach((p,i)=>p.classList.toggle('active',i===idx));document.querySelectorAll('.page-tab').forEach((t,i)=>t.classList.toggle('active',i===idx));}
 function scrollToProducts(){document.getElementById('products').scrollIntoView({behavior:'smooth'});}
 function openModal(t){if(t==='gift-edit')renderGiftEditList();if(t==='shipping-edit')openShippingEdit();document.getElementById(`modal-${t}`).classList.add('on');}
