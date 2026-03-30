@@ -741,6 +741,75 @@ footer{background:var(--bark);color:rgba(255,255,255,.45);text-align:center;padd
   </div>
 </div>
 
+<!-- 運費說明彈窗 -->
+<div class="modal-wrap" id="modal-shipping-info">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-head"><h3>🚚 配送資訊 & 運費試算</h3><button class="modal-close" onclick="closeModal('shipping-info')">✕</button></div>
+    <div class="modal-body" style="padding:0">
+
+      <!-- 運費試算 -->
+      <div style="background:var(--sand);padding:16px 20px;border-bottom:1px solid var(--border)">
+        <div style="font-size:.78rem;font-weight:600;color:var(--bark);margin-bottom:10px">💰 運費試算</div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <select id="calc-method" onchange="calcShipping()" style="flex:1;padding:7px 10px;border:1.5px solid var(--border);border-radius:3px;font-family:'Noto Serif TC',serif;font-size:.78rem;background:#fff">
+            <option value="cvs">超商取貨</option>
+            <option value="blackcat">黑貓宅配</option>
+            <option value="local">外送到府</option>
+          </select>
+          <div style="display:flex;align-items:center;gap:4px">
+            <input type="number" id="calc-weight" placeholder="重量(kg)" min="0.1" step="0.1" onchange="calcShipping()" style="width:90px;padding:7px 8px;border:1.5px solid var(--border);border-radius:3px;font-size:.78rem;font-family:'Noto Serif TC',serif">
+            <span style="font-size:.72rem;color:var(--mid)">kg</span>
+          </div>
+        </div>
+        <div id="calc-result" style="margin-top:10px;padding:8px 12px;background:#fff;border-radius:4px;font-size:.82rem;color:var(--bark);font-family:'Noto Sans TC',sans-serif;min-height:36px;border:1px solid var(--border)">
+          請選擇配送方式並輸入重量
+        </div>
+      </div>
+
+      <!-- 配送說明 -->
+      <div style="padding:16px 20px">
+        <div style="font-size:.78rem;font-weight:600;color:var(--bark);margin-bottom:10px">📦 超商取貨（全家/7-11/萊爾富）</div>
+        <table style="width:100%;font-size:.72rem;font-family:'Noto Sans TC',sans-serif;border-collapse:collapse;margin-bottom:6px">
+          <tr style="background:var(--sand)"><th style="padding:5px 8px;text-align:left;font-weight:600">重量</th><th style="padding:5px 8px;text-align:right;font-weight:600">運費</th></tr>
+          <tr><td style="padding:5px 8px;border-bottom:1px solid var(--border)">1kg 以下</td><td style="padding:5px 8px;text-align:right;border-bottom:1px solid var(--border)">NT$ 60</td></tr>
+          <tr><td style="padding:5px 8px;border-bottom:1px solid var(--border)">1 ~ 5kg</td><td style="padding:5px 8px;text-align:right;border-bottom:1px solid var(--border)">NT$ 60</td></tr>
+          <tr><td style="padding:5px 8px;color:#e05050">5kg 以上</td><td style="padding:5px 8px;text-align:right;color:#e05050">不支援</td></tr>
+        </table>
+        <div style="font-size:.65rem;color:var(--mid);margin-bottom:14px">材積限 105cm，單邊 ≦ 45cm，總重不可超過 5kg</div>
+
+        <div style="font-size:.78rem;font-weight:600;color:var(--bark);margin-bottom:10px">🐱 黑貓宅配</div>
+        <table style="width:100%;font-size:.72rem;font-family:'Noto Sans TC',sans-serif;border-collapse:collapse;margin-bottom:6px">
+          <tr style="background:var(--sand)"><th style="padding:5px 8px;text-align:left;font-weight:600">重量</th><th style="padding:5px 8px;text-align:right;font-weight:600">運費</th></tr>
+          <tr><td style="padding:5px 8px;border-bottom:1px solid var(--border)">1kg 以下</td><td style="padding:5px 8px;text-align:right;border-bottom:1px solid var(--border)">NT$ 130</td></tr>
+          <tr><td style="padding:5px 8px;border-bottom:1px solid var(--border)">1 ~ 5kg</td><td style="padding:5px 8px;text-align:right;border-bottom:1px solid var(--border)">NT$ 170</td></tr>
+          <tr><td style="padding:5px 8px">5kg 以上</td><td style="padding:5px 8px;text-align:right">NT$ 210 起</td></tr>
+        </table>
+        <div style="font-size:.65rem;color:var(--mid);margin-bottom:14px">依尺寸計費，上限 20kg</div>
+
+        <div style="font-size:.78rem;font-weight:600;color:var(--bark);margin-bottom:6px">🏍️ 外送到府（限附近居民）</div>
+        <div style="font-size:.72rem;color:var(--mid);font-family:'Noto Sans TC',sans-serif;margin-bottom:14px">免運費 · 限店址周邊 1 公里內或消費滿額</div>
+
+        <!-- 寄件工具 -->
+        <div style="background:var(--rose-lt);border-radius:4px;padding:12px 14px;margin-bottom:12px">
+          <div style="font-size:.72rem;font-weight:600;color:var(--bark);margin-bottom:8px">📬 物流填單工具</div>
+          <a href="https://myship.7-11.com.tw/" target="_blank" style="display:block;font-size:.7rem;color:var(--rose);margin-bottom:4px;font-family:'Noto Sans TC',sans-serif">● 超商寄件（7-11 my ship）→</a>
+          <a href="https://www.t-cat.com.tw/Inquire/I_Takkyubin.aspx" target="_blank" style="display:block;font-size:.7rem;color:var(--rose);font-family:'Noto Sans TC',sans-serif">● 黑貓宅急便預約 →</a>
+        </div>
+
+        <!-- 包裝提醒 -->
+        <div style="background:rgba(184,137,90,.08);border-left:3px solid var(--gold);padding:10px 12px;border-radius:0 4px 4px 0">
+          <div style="font-size:.72rem;font-weight:600;color:var(--bark);margin-bottom:6px">📦 寄件包裝提醒</div>
+          <div style="font-size:.68rem;color:var(--mid);line-height:1.8;font-family:'Noto Sans TC',sans-serif">
+            1. 髮品按壓頭：務必纏繞膠帶固定，避免溢漏<br>
+            2. 防撞包裝：氣泡紙包覆 2 層以上，確保無晃動<br>
+            3. 超過 5kg 請改用黑貓，避免超商退件
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- 運費設定彈窗 -->
 <div class="modal-wrap" id="modal-shipping-edit">
   <div class="modal">
@@ -778,6 +847,7 @@ footer{background:var(--bark);color:rgba(255,255,255,.45);text-align:center;padd
           <select class="form-select" id="shipping-method" onchange="updateShippingFee()" style="width:100%;padding:8px 11px;border:1.5px solid var(--border);border-radius:3px;font-family:'Noto Serif TC',serif;font-size:.8rem;background:var(--linen)">
           </select>
           <div id="shipping-fee-hint" style="font-size:.7rem;color:var(--moss);margin-top:4px;font-family:'Noto Sans TC',sans-serif"></div>
+          <div style="margin-top:6px"><a href="javascript:void(0)" onclick="closeModal('');openModal('shipping-info')" style="font-size:.68rem;color:var(--rose);font-family:'Noto Sans TC',sans-serif;text-decoration:underline">📋 查看完整運費說明 & 試算 →</a></div>
         </div>
 
         <!-- 電話 -->
@@ -878,13 +948,12 @@ let giftRules=[{threshold:500, name:'贈品名稱（請店家修改）'}];
 
 // 運費設定
 let shippingConfig = {
-  freeThreshold: 1500,  // 滿額免運門檻
+  freeThreshold: 3000,  // 滿額免運門檻
   methods: [
-    { id: 'pickup',   name: '到店取貨',         fee: 0 },
-    { id: 'local',    name: '外送到府（附近居民）', fee: 80 },
-    { id: 'cvs',      name: '超商取貨',           fee: 60 },
-    { id: 'delivery', name: '居家宅配',           fee: 120 },
-    { id: 'shopee',   name: '蝦皮寄送',           fee: 60 },
+    { id: 'pickup',   name: '到店取貨',              fee: 0 },
+    { id: 'local',    name: '外送到府（附近居民）',    fee: 0 },
+    { id: 'cvs',      name: '超商取貨（依重量）',      fee: 60 },
+    { id: 'blackcat', name: '黑貓宅配（依重量）',      fee: 130 },
   ]
 };
 let currentOrderNum='';
@@ -959,6 +1028,27 @@ function addDiscountRule(){discountRules.push({threshold:0,discount:0});renderDi
 function removeDiscountRule(i){discountRules.splice(i,1);renderDiscountEditList();}
 function saveDiscounts(){discountRules=discountRules.map((_,i)=>({threshold:parseInt(document.getElementById(`dt-${i}`).value)||0,discount:parseInt(document.getElementById(`dd-${i}`).value)||0})).filter(r=>r.threshold>0&&r.discount>0);updateCart();closeModal('discount-edit');showToast('✓ 折扣設定已儲存');}
 function renderGiftSelect(){} // 已改為自動贈品
+
+function calcShipping(){
+  const method = document.getElementById('calc-method').value;
+  const weight = parseFloat(document.getElementById('calc-weight').value)||0;
+  const result = document.getElementById('calc-result');
+  if(!weight){ result.textContent='請輸入重量'; return; }
+
+  let fee=0, note='';
+  if(method==='cvs'){
+    if(weight>5){ result.innerHTML='<span style="color:#e05050">❌ 超商不支援 5kg 以上，請改用黑貓宅配</span>'; return; }
+    fee=60; note='全家/7-11/萊爾富均適用';
+  } else if(method==='blackcat'){
+    if(weight<=1) fee=130;
+    else if(weight<=5) fee=170;
+    else fee=210;
+    note=weight>5?'依尺寸加收，上限 20kg':'';
+  } else if(method==='local'){
+    fee=0; note='限店址周邊 1 公里內或消費滿額';
+  }
+  result.innerHTML=`<strong style="color:var(--bark);font-size:.9rem">運費：NT$ ${fee}</strong>${note?'<span style="color:var(--mid);font-size:.68rem;margin-left:8px">'+note+'</span>':''}`;
+}
 
 function openShippingEdit(){
   document.getElementById('shipping-free-threshold').value = shippingConfig.freeThreshold;
