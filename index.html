@@ -321,6 +321,7 @@ footer{background:var(--bark);color:rgba(255,255,255,.45);text-align:center;padd
          <span style="font-size:.68rem;color:var(--mid);font-family:'Noto Sans TC',sans-serif">${result.user.email}</span>
          <button class="owner-logout" onclick="ownerLogout()">登出</button>`;
       document.getElementById('btn-save-products').style.display = 'flex';
+      document.getElementById('btn-shipping-edit').style.display = 'flex';
       showToast('✓ 店家已登入');
     } catch(e) { showToast('登入失敗：' + e.message); }
   };
@@ -600,6 +601,7 @@ footer{background:var(--bark);color:rgba(255,255,255,.45);text-align:center;padd
       <button class="h-btn" id="btn-gift-edit" onclick="openModal('gift-edit')" style="display:none">⚙️ <span>編輯贈品</span></button>
       <button class="h-btn" id="btn-discount-edit" onclick="openModal('discount-edit')" style="display:none">💰 <span>折扣設定</span></button>
       <button class="h-btn" id="btn-save-products" onclick="saveProductsToFirestore()" style="display:none;background:rgba(122,140,110,.25);border-color:var(--moss)">☁️ <span>儲存商品</span></button>
+      <button class="h-btn" id="btn-shipping-edit" onclick="openModal('shipping-edit')" style="display:none">🚚 <span>運費設定</span></button>
       <button class="h-btn cart-btn" onclick="toggleCart()">🛒 <span>購物車</span><span class="cart-badge" id="cart-count">0</span></button>
     </div>
   </div>
@@ -735,6 +737,23 @@ footer{background:var(--bark);color:rgba(255,255,255,.45);text-align:center;padd
       <div class="discount-edit-wrap" id="discount-edit-list"></div>
       <button class="add-discount-btn" onclick="addDiscountRule()">＋ 新增折扣規則</button>
       <button class="form-submit" onclick="saveDiscounts()">儲存折扣設定</button>
+    </div>
+  </div>
+</div>
+
+<!-- 運費設定彈窗 -->
+<div class="modal-wrap" id="modal-shipping-edit">
+  <div class="modal">
+    <div class="modal-head"><h3>🚚 運費設定</h3><button class="modal-close" onclick="closeModal('shipping-edit')">✕</button></div>
+    <div class="modal-body">
+      <div style="margin-bottom:14px">
+        <label style="font-size:.75rem;font-weight:600;color:var(--bark);display:block;margin-bottom:6px">🎉 滿額免運門檻（NT$）</label>
+        <input type="number" id="shipping-free-threshold" class="disc-input" placeholder="例：1500" style="width:100%">
+        <div style="font-size:.65rem;color:var(--mid);margin-top:4px;font-family:'Noto Sans TC',sans-serif">設為 0 表示不提供免運</div>
+      </div>
+      <div style="font-size:.75rem;font-weight:600;color:var(--bark);margin-bottom:8px">各配送方式運費（NT$）</div>
+      <div id="shipping-method-edit-list"></div>
+      <button class="form-submit" onclick="saveShippingConfig()" style="margin-top:12px">儲存運費設定</button>
     </div>
   </div>
 </div>
@@ -940,13 +959,35 @@ function addDiscountRule(){discountRules.push({threshold:0,discount:0});renderDi
 function removeDiscountRule(i){discountRules.splice(i,1);renderDiscountEditList();}
 function saveDiscounts(){discountRules=discountRules.map((_,i)=>({threshold:parseInt(document.getElementById(`dt-${i}`).value)||0,discount:parseInt(document.getElementById(`dd-${i}`).value)||0})).filter(r=>r.threshold>0&&r.discount>0);updateCart();closeModal('discount-edit');showToast('✓ 折扣設定已儲存');}
 function renderGiftSelect(){} // 已改為自動贈品
+
+function openShippingEdit(){
+  document.getElementById('shipping-free-threshold').value = shippingConfig.freeThreshold;
+  const list = document.getElementById('shipping-method-edit-list');
+  list.innerHTML = shippingConfig.methods.map((m,i) => `
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <span style="font-size:.75rem;color:var(--ink);width:140px;font-family:'Noto Sans TC',sans-serif">${m.name}</span>
+      <span style="font-size:.72rem;color:var(--mid)">NT$</span>
+      <input type="number" id="sfee-${i}" value="${m.fee}" min="0" class="disc-input" style="width:80px">
+    </div>
+  `).join('');
+}
+
+function saveShippingConfig(){
+  shippingConfig.freeThreshold = parseInt(document.getElementById('shipping-free-threshold').value)||0;
+  shippingConfig.methods = shippingConfig.methods.map((m,i) => ({
+    ...m,
+    fee: parseInt(document.getElementById('sfee-'+i).value)||0
+  }));
+  closeModal('shipping-edit');
+  showToast('✓ 運費設定已儲存');
+}
 function renderGiftEditList(){document.getElementById('gift-edit-list').innerHTML=giftRules.map((r,i)=>`<div class="gift-edit-item"><span style="font-size:.7rem;color:var(--mid);white-space:nowrap">滿NT$</span><input class="gift-edit-input" type="number" value="${r.threshold}" id="gt-${i}" placeholder="門檻金額" style="width:80px"><span style="font-size:.7rem;color:var(--mid);white-space:nowrap">贈</span><input class="gift-edit-input" type="text" value="${r.name}" id="gn-${i}" placeholder="贈品名稱"><button class="gift-edit-rm" onclick="removeGift(${i})">✕</button></div>`).join('');}
 function addGiftOption(){giftRules.push({threshold:0,name:'新贈品（請修改）'});renderGiftEditList();}
 function removeGift(i){giftRules.splice(i,1);renderGiftEditList();}
 function saveGifts(){giftRules=giftRules.map((_,i)=>({threshold:parseInt(document.getElementById('gt-'+i).value)||0,name:document.getElementById('gn-'+i).value.trim()})).filter(r=>r.threshold>0&&r.name);updateCart();closeModal('gift-edit');showToast('✓ 贈品設定已儲存');}
 function switchPage(idx){document.querySelectorAll('.shop-page').forEach((p,i)=>p.classList.toggle('active',i===idx));document.querySelectorAll('.page-tab').forEach((t,i)=>t.classList.toggle('active',i===idx));}
 function scrollToProducts(){document.getElementById('products').scrollIntoView({behavior:'smooth'});}
-function openModal(t){if(t==='gift-edit')renderGiftEditList();document.getElementById(`modal-${t}`).classList.add('on');}
+function openModal(t){if(t==='gift-edit')renderGiftEditList();if(t==='shipping-edit')openShippingEdit();document.getElementById(`modal-${t}`).classList.add('on');}
 function closeModal(t){document.getElementById(`modal-${t}`).classList.remove('on');}
 function toggleCart(){document.getElementById('overlay').classList.toggle('on');document.getElementById('sidebar').classList.toggle('on');}
 function submitForm(t){document.getElementById(`modal-${t}-body`).style.display='none';document.getElementById(`${t}-success`).style.display='block';setTimeout(()=>closeModal(t),2600);setTimeout(()=>{document.getElementById(`modal-${t}-body`).style.display='block';document.getElementById(`${t}-success`).style.display='none';},3200);}
