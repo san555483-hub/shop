@@ -34,6 +34,15 @@ header{background:var(--bark);position:sticky;top:0;z-index:200;box-shadow:0 2px
 .line-history-btn{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;padding:4px 10px;border-radius:3px;font-size:.68rem;cursor:pointer;font-family:'Noto Sans TC',sans-serif;transition:all .2s;}
 .line-history-btn:hover{background:rgba(255,255,255,.25);}
 
+/* 強制登入遮罩 */
+#line-gate{position:fixed;inset:0;background:rgba(30,20,10,.82);z-index:9999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+#line-gate.hidden{display:none;}
+.gate-box{background:var(--linen);border-radius:8px;padding:36px 28px;text-align:center;max-width:300px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.25);}
+.gate-logo{font-size:2.2rem;margin-bottom:8px;}
+.gate-title{font-family:'Playfair Display',serif;font-size:1.25rem;color:var(--ink);margin-bottom:6px;}
+.gate-sub{font-size:.75rem;color:var(--mid);font-family:'Noto Sans TC',sans-serif;line-height:1.6;margin-bottom:20px;}
+.gate-line-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:12px;background:#06C755;border:none;border-radius:5px;color:#fff;font-family:'Noto Sans TC',sans-serif;font-size:.88rem;font-weight:600;cursor:pointer;transition:opacity .2s;}
+.gate-line-btn:hover{opacity:.88;}
 /* 店家編輯列 */
 .edit-bar{background:rgba(201,137,122,.1);border-bottom:1px solid rgba(201,137,122,.28);padding:7px 24px;display:flex;align-items:center;justify-content:space-between;font-size:.7rem;color:var(--rose);font-family:'Noto Sans TC',sans-serif;letter-spacing:.03em;}
 .owner-actions{display:flex;gap:6px;}
@@ -284,6 +293,17 @@ footer{background:var(--bark);color:rgba(255,255,255,.45);text-align:center;padd
 </style>
 </head>
 <body>
+<!-- 強制 LINE 登入遮罩 -->
+<div id="line-gate">
+  <div class="gate-box">
+    <div class="gate-logo">💇</div>
+    <div class="gate-title">UNI髮型設計</div>
+    <div class="gate-sub">請先以 LINE 登入<br>以便追蹤您的訂單與享受會員優惠</div>
+    <button class="gate-line-btn" onclick="lineLogin()">
+      以 LINE 帳號登入
+    </button>
+  </div>
+</div>
 
 <!-- Firebase SDK -->
 <script type="module">
@@ -322,6 +342,9 @@ footer{background:var(--bark);color:rgba(255,255,255,.45);text-align:center;padd
          <button class="owner-logout" onclick="ownerLogout()">登出</button>`;
       document.getElementById('btn-save-products').style.display = 'flex';
       document.getElementById('btn-shipping-edit').style.display = 'flex';
+      // 店家登入後隱藏遮罩
+      const gate = document.getElementById('line-gate');
+      if (gate) gate.classList.add('hidden');
       showToast('✓ 店家已登入');
     } catch(e) { showToast('登入失敗：' + e.message); }
   };
@@ -537,6 +560,8 @@ footer{background:var(--bark);color:rgba(255,255,255,.45);text-align:center;padd
       sessionStorage.setItem('line_uid', uid);
       sessionStorage.setItem('line_name', profile.displayName);
       sessionStorage.setItem('line_pic', profile.pictureUrl || '');
+      const gate = document.getElementById('line-gate');
+      if (gate) gate.classList.add('hidden');
       renderLineBar({ name: profile.displayName, pic: profile.pictureUrl });
       showToast('✓ 歡迎！' + profile.displayName);
     } catch(e) {
@@ -586,8 +611,15 @@ footer{background:var(--bark);color:rgba(255,255,255,.45);text-align:center;padd
     handleLineCallback();
     const name = sessionStorage.getItem('line_name');
     const pic = sessionStorage.getItem('line_pic');
-    if (name) renderLineBar({ name, pic });
-    else renderLineBar(null);
+    if (name) {
+      // LINE 已登入，隱藏遮罩
+      const gate = document.getElementById('line-gate');
+      if (gate) gate.classList.add('hidden');
+      renderLineBar({ name, pic });
+    } else {
+      renderLineBar(null);
+      // 非店家模式才顯示遮罩（店家用 Google 登入，onAuthStateChanged 處理）
+    }
     // 載入店家設定（運費、折扣、贈品）
     await loadShopSettings();
     // 商品由下方 setTimeout 載入
