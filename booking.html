@@ -483,6 +483,24 @@ async function submitBooking() {
   loading.style.display = 'block';
   btn.disabled = true;
   errMsg.style.display = 'none';
+
+  // ★ 送出前再查一次，確認時段還空著
+  try {
+    const dateStr = state.date ? formatDate(state.date) : '';
+    const checkRes  = await fetch(`${GAS_URL}?action=getBookedSlots&date=${dateStr}&t=${Date.now()}`, { cache: 'no-store' });
+    const checkData = await checkRes.json();
+    const latestBooked = new Set(checkData.slots || []);
+    if (latestBooked.has(state.time)) {
+      errMsg.textContent = '此時段剛剛已被預約，請返回重新選擇時間';
+      errMsg.style.display = 'block';
+      btn.disabled = false;
+      loading.style.display = 'none';
+      return;
+    }
+  } catch (_) {
+    // 查詢失敗就讓 GAS 那邊擋，繼續送出
+  }
+
   const dateStr    = state.date ? formatDate(state.date) : '';
   const serviceStr = state.services.map(s => s.name).join('、');
   const params  = new URLSearchParams({
