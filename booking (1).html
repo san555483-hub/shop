@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>UNI Hair Shop — 線上預約</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;400;500;600&family=Noto+Sans+TC:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #faf8f5;
+  --surface: #ffffff;
+  --border: #e8e0d5;
+  --gold: #c4a882;
+  --gold-dark: #a08660;
+  --text: #2a2420;
+  --muted: #8a7d72;
+  --light: #f0ebe4;
+  --red: #c0392b;
+  --disabled: #d5cdc5;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: 'Noto Sans TC', sans-serif; min-height: 100vh; padding-bottom: 60px; }
+.header { background: var(--text); color: white; text-align: center; padding: 28px 20px 24px; }
+.header-logo { font-family: 'Noto Serif TC', serif; font-size: 22px; font-weight: 500; letter-spacing: 4px; margin-bottom: 4px; }
+.header-sub { font-size: 11px; letter-spacing: 3px; opacity: 0.6; text-transform: uppercase; }
+.progress { display: flex; justify-content: center; align-items: center; padding: 20px 20px 0; max-width: 420px; margin: 0 auto; }
+.step { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; position: relative; }
+.step:not(:last-child)::after { content: ''; position: absolute; top: 14px; left: 50%; width: 100%; height: 1px; background: var(--border); z-index: 0; }
+.step.done::after { background: var(--gold); }
+.step-dot { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--border); background: var(--bg); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 500; color: var(--muted); z-index: 1; transition: all 0.3s; }
+.step.active .step-dot, .step.done .step-dot { border-color: var(--gold); background: var(--gold); color: white; }
+.step-label { font-size: 10px; color: var(--muted); letter-spacing: 1px; white-space: nowrap; }
+.step.active .step-label { color: var(--gold-dark); font-weight: 500; }
+.container { max-width: 420px; margin: 0 auto; padding: 24px 16px 0; }
+.section { display: none; }
+.section.active { display: block; }
+.section-title { font-family: 'Noto Serif TC', serif; font-size: 18px; font-weight: 500; margin-bottom: 6px; }
+.section-desc { font-size: 12px; color: var(--muted); margin-bottom: 20px; line-height: 1.6; }
+.category-label { font-size: 11px; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; padding: 4px 0 8px; margin-top: 16px; border-bottom: 1px solid var(--border); margin-bottom: 10px; }
+.category-label:first-child { margin-top: 0; }
+.service-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 4px; }
+.service-card { border: 1.5px solid var(--border); border-radius: 10px; padding: 14px 12px; cursor: pointer; transition: all 0.2s; background: var(--surface); position: relative; }
+.service-card:active { transform: scale(0.98); }
+.service-card.selected { border-color: var(--gold); background: #fdf6ee; }
+.service-card.selected::after { content: '✓'; position: absolute; top: 8px; right: 10px; color: var(--gold); font-size: 12px; font-weight: 700; }
+.service-name { font-size: 13px; font-weight: 500; margin-bottom: 4px; line-height: 1.4; }
+.service-price { font-size: 11px; color: var(--gold-dark); font-weight: 500; }
+.service-time { font-size: 10px; color: var(--muted); margin-top: 2px; }
+.service-note { font-size: 10px; color: #c08040; margin-top: 3px; }
+.date-scroll { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; scrollbar-width: none; margin-bottom: 20px; }
+.date-scroll::-webkit-scrollbar { display: none; }
+.date-item { flex-shrink: 0; width: 56px; border: 1.5px solid var(--border); border-radius: 10px; padding: 10px 6px; text-align: center; cursor: pointer; background: var(--surface); transition: all 0.2s; }
+.date-item.selected { border-color: var(--gold); background: #fdf6ee; }
+.date-item.closed { opacity: 0.4; cursor: not-allowed; background: var(--light); }
+.date-day { font-size: 10px; color: var(--muted); margin-bottom: 4px; }
+.date-num { font-size: 18px; font-weight: 500; line-height: 1; }
+.date-month { font-size: 9px; color: var(--muted); margin-top: 2px; }
+.date-closed-label { font-size: 8px; color: var(--red); margin-top: 2px; }
+.time-section-label { font-size: 11px; color: var(--muted); letter-spacing: 1px; margin-bottom: 8px; margin-top: 16px; }
+.time-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 8px; }
+.time-slot { border: 1.5px solid var(--border); border-radius: 8px; padding: 10px 4px; text-align: center; cursor: pointer; font-size: 13px; background: var(--surface); transition: all 0.2s; }
+.time-slot.selected { border-color: var(--gold); background: #fdf6ee; color: var(--gold-dark); font-weight: 500; }
+.time-slot.booked { background: var(--light); color: var(--disabled); cursor: not-allowed; text-decoration: line-through; font-size: 11px; }
+.form-group { margin-bottom: 16px; }
+.form-label { font-size: 12px; color: var(--muted); margin-bottom: 6px; display: block; }
+.form-input { width: 100%; border: 1.5px solid var(--border); border-radius: 8px; padding: 12px 14px; font-size: 14px; font-family: 'Noto Sans TC', sans-serif; background: var(--surface); color: var(--text); outline: none; transition: border-color 0.2s; }
+.form-input:focus { border-color: var(--gold); }
+textarea.form-input { resize: none; height: 80px; line-height: 1.6; }
+.priority-box { border: 1.5px solid var(--border); border-radius: 10px; padding: 14px; background: var(--surface); margin-bottom: 16px; cursor: pointer; }
+.priority-header { display: flex; align-items: flex-start; gap: 10px; }
+.priority-checkbox { width: 20px; height: 20px; border: 2px solid var(--border); border-radius: 4px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all 0.2s; margin-top: 1px; }
+.priority-checkbox.checked { background: var(--gold); border-color: var(--gold); color: white; }
+.priority-title { font-size: 13px; font-weight: 500; line-height: 1.4; }
+.priority-price { font-size: 12px; color: var(--gold-dark); margin-top: 2px; }
+.priority-desc { font-size: 11px; color: var(--muted); line-height: 1.6; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
+.notice-box { background: #fdf8f0; border: 1px solid #e8d5b0; border-radius: 10px; padding: 14px; margin-bottom: 20px; }
+.notice-title { font-size: 12px; font-weight: 500; color: var(--gold-dark); margin-bottom: 6px; }
+.notice-text { font-size: 11px; color: #7a6a55; line-height: 1.8; }
+.payment-list { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+.payment-tag { background: var(--light); border: 1px solid var(--border); border-radius: 20px; padding: 6px 14px; font-size: 12px; color: var(--muted); }
+.summary-card { border: 1.5px solid var(--gold); border-radius: 12px; overflow: hidden; margin-bottom: 20px; }
+.summary-header { background: var(--gold); color: white; padding: 12px 16px; font-size: 13px; font-weight: 500; letter-spacing: 1px; }
+.summary-body { padding: 16px; }
+.summary-row { display: flex; justify-content: space-between; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+.summary-row:last-child { border-bottom: none; }
+.summary-label { color: var(--muted); flex-shrink: 0; margin-right: 12px; }
+.summary-value { text-align: right; font-weight: 500; }
+.btn { width: 100%; padding: 16px; border: none; border-radius: 10px; font-size: 15px; font-family: 'Noto Sans TC', sans-serif; font-weight: 500; cursor: pointer; transition: all 0.2s; letter-spacing: 1px; }
+.btn-primary { background: var(--text); color: white; }
+.btn-secondary { background: transparent; color: var(--muted); border: 1.5px solid var(--border); margin-top: 10px; }
+.btn:disabled { background: var(--disabled); cursor: not-allowed; }
+.success-screen { text-align: center; padding: 40px 20px; }
+.success-icon { font-size: 56px; margin-bottom: 16px; }
+.success-title { font-family: 'Noto Serif TC', serif; font-size: 22px; font-weight: 500; margin-bottom: 8px; }
+.success-desc { font-size: 13px; color: var(--muted); line-height: 1.8; }
+.loading-screen { text-align: center; padding: 60px 20px; color: var(--muted); }
+.spinner { width: 32px; height: 32px; border: 2px solid var(--border); border-top-color: var(--gold); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 12px; }
+.spinner-sm { width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--gold); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 8px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-inline { display: none; text-align: center; padding: 16px; color: var(--muted); font-size: 13px; }
+.error-msg { color: var(--red); font-size: 12px; margin-top: 8px; display: none; }
+.closed-notice { text-align: center; padding: 24px; background: #fff5f5; border: 1px solid #f0c0c0; border-radius: 10px; color: #c0392b; font-size: 13px; line-height: 1.8; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-logo">UNI HAIR SHOP</div>
+  <div class="header-sub">一對一訂製髮型設計</div>
+</div>
+
+<div class="progress">
+  <div class="step active" id="step1"><div class="step-dot">1</div><div class="step-label">服務</div></div>
+  <div class="step" id="step2"><div class="step-dot">2</div><div class="step-label">時段</div></div>
+  <div class="step" id="step3"><div class="step-dot">3</div><div class="step-label">資料</div></div>
+  <div class="step" id="step4"><div class="step-dot">4</div><div class="step-label">確認</div></div>
+</div>
+
+<div class="container">
+
+  <!-- 載入中 -->
+  <div class="section active" id="sectionLoading">
+    <div class="loading-screen">
+      <div class="spinner"></div>
+      <div>載入服務資料中...</div>
+    </div>
+  </div>
+
+  <!-- Step 1 -->
+  <div class="section" id="section1">
+    <div class="section-title">選擇服務項目</div>
+    <div class="section-desc">請選擇您這次想要的服務</div>
+    <div id="serviceList"></div>
+    <div class="notice-box" style="margin-top:16px">
+      <div class="notice-title">⏱ 關於服務時長</div>
+      <div class="notice-text">
+        每位顧客需求狀況不同，以上時間為預估時間。若有異動，Elsa 會主動通知您。<br><br>
+        若不想等候，可於下一步勾選「加價指定時段全程服務」。<br>
+        會員 $250 ／ 非會員 $350
+      </div>
+    </div>
+    <button class="btn btn-primary" id="btn1" onclick="goStep(2)" disabled>下一步</button>
+  </div>
+
+  <!-- Step 2 -->
+  <div class="section" id="section2">
+    <div class="section-title">選擇預約時段</div>
+    <div class="section-desc">請選擇方便的日期與時間</div>
+    <div class="date-scroll" id="dateScroll"></div>
+    <div id="timeSlotArea"><div style="text-align:center;color:var(--muted);font-size:13px;padding:20px 0">請先選擇日期</div></div>
+    <div class="loading-inline" id="loadingSlots"><div class="spinner-sm"></div>載入時段中...</div>
+    <div style="margin-top:20px">
+      <button class="btn btn-primary" id="btn2" onclick="goStep(3)" disabled>下一步</button>
+      <button class="btn btn-secondary" onclick="goStep(1)">上一步</button>
+    </div>
+  </div>
+
+  <!-- Step 3 -->
+  <div class="section" id="section3">
+    <div class="section-title">填寫預約資料</div>
+    <div class="section-desc">請留下您的聯絡資訊</div>
+    <div class="form-group">
+      <label class="form-label">姓名 *</label>
+      <input type="text" class="form-input" id="inputName" placeholder="請輸入您的姓名">
+    </div>
+    <div class="form-group">
+      <label class="form-label">手機號碼 *</label>
+      <input type="tel" class="form-input" id="inputPhone" placeholder="09xxxxxxxx">
+    </div>
+    <div class="form-group">
+      <label class="form-label">備註（可填諮詢需求、髮況說明等）</label>
+      <textarea class="form-input" id="inputNote" placeholder="例如：想諮詢漂髮、頭髮有受損、小朋友容易坐不住..."></textarea>
+    </div>
+    <div class="priority-box" onclick="togglePriority()">
+      <div class="priority-header">
+        <div class="priority-checkbox" id="priorityCheck"></div>
+        <div>
+          <div class="priority-title">加價指定時段全程服務</div>
+          <div class="priority-price">會員 $250 ／ 非會員 $350</div>
+        </div>
+      </div>
+      <div class="priority-desc">Elsa 將為您安排專屬時段，全程服務不受排程影響。此費用用以平衡排程與人力負擔，敬請見諒與理解 🙏</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">付款方式</label>
+      <div class="payment-list">
+        <span class="payment-tag">💳 街口支付</span>
+        <span class="payment-tag">💳 iPASS Money</span>
+        <span class="payment-tag">🏦 轉帳</span>
+      </div>
+      <div style="font-size:11px;color:var(--muted)">使用官方LINE自助預約即送回饋金 🎁</div>
+    </div>
+    <div id="errorMsg3" class="error-msg">請填寫姓名和手機號碼</div>
+    <button class="btn btn-primary" onclick="goStep(4)">下一步</button>
+    <button class="btn btn-secondary" onclick="goStep(2)">上一步</button>
+  </div>
+
+  <!-- Step 4 -->
+  <div class="section" id="section4">
+    <div class="section-title">確認預約內容</div>
+    <div class="section-desc">請確認以下資訊後送出</div>
+    <div class="summary-card">
+      <div class="summary-header">預約明細</div>
+      <div class="summary-body" id="summaryBody"></div>
+    </div>
+    <div class="notice-box">
+      <div class="notice-title">📌 預約須知</div>
+      <div class="notice-text">
+        • 每位顧客需求狀況不同，服務時間為預估時間<br>
+        • 若時間有異動，Elsa 會主動通知您<br>
+        • 長時間服務（燙染護）歡迎自備筆電<br>
+        • 小朋友建議先吃飽睡足再來 🍱<br>
+        • 無固定公休，如遇特殊狀況會提前通知
+      </div>
+    </div>
+    <div class="loading-inline" id="loadingSubmit"><div class="spinner-sm"></div>送出預約中...</div>
+    <div id="errorMsg4" class="error-msg">送出失敗，請稍後再試</div>
+    <button class="btn btn-primary" id="btnSubmit" onclick="submitBooking()">確認送出預約</button>
+    <button class="btn btn-secondary" onclick="goStep(3)">上一步</button>
+  </div>
+
+  <!-- Success -->
+  <div class="section" id="sectionSuccess">
+    <div class="success-screen">
+      <div class="success-icon">✨</div>
+      <div class="success-title">預約成功！</div>
+      <div class="success-desc" id="successDesc"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbzY09EGQHqCSREnhbloFSle9MZ92Mdm87liH2AZlvm4rb7CrfzJiuS3kWP4-_8aao6uxw/exec';
+
+const BUSINESS_HOURS = {
+  0: ['09:00','09:30','10:00','10:30','11:00','11:30','12:00','12:30','13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30','18:00','18:30','19:00','19:30','20:00','20:30'],
+  1: ['09:00','09:30','10:00','10:30','11:00','11:30','12:00','12:30','13:00','13:30','14:00','14:30','17:00','17:30','18:00','18:30','19:00','19:30','20:00','20:30'],
+  2: ['09:00','09:30','10:00','10:30','11:00','11:30','12:00','12:30','13:00','13:30','14:00','14:30','17:00','17:30','18:00','18:30','19:00','19:30','20:00','20:30'],
+  3: ['09:00','09:30','10:00','10:30','11:00','11:30','13:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30','18:00','18:30','19:00','19:30','20:00','20:30'],
+  4: ['09:00','09:30','10:00','10:30','11:00','11:30','12:00','12:30','13:00','13:30','14:00','14:30','17:00','17:30','18:00','18:30','19:00','19:30','20:00','20:30'],
+  5: ['09:00','09:30','10:00','10:30','11:00','11:30','13:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30','18:00','18:30','19:00','19:30','20:00','20:30'],
+  6: ['09:00','09:30','10:00','10:30','11:00','11:30','12:00','12:30','13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30','18:00','18:30','19:00','19:30','20:00','20:30'],
+};
+
+const DAY_NAMES   = ['日','一','二','三','四','五','六'];
+const MONTH_NAMES = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+
+let allServices = [];
+let schedule    = [];
+let state       = { service: null, date: null, time: null, name: '', phone: '', note: '', priority: false };
+
+// ============================================================
+// 初始化 — 從 GAS 抓服務和排程
+// ============================================================
+document.addEventListener('DOMContentLoaded', async () => {
+  try {
+    const [svcRes, schedRes] = await Promise.all([
+      fetch(`${GAS_URL}?action=getServices`),
+      fetch(`${GAS_URL}?action=getSchedule`),
+    ]);
+
+    const svcData   = await svcRes.json();
+    const schedData = await schedRes.json();
+
+    allServices = (svcData.services || []).filter(s => s.active);
+    schedule    = schedData.schedule || [];
+
+    renderServices();
+    renderDates();
+
+    // 切換到 Step 1
+    document.getElementById('sectionLoading').classList.remove('active');
+    document.getElementById('section1').classList.add('active');
+
+  } catch (err) {
+    document.getElementById('sectionLoading').innerHTML =
+      '<div class="loading-screen" style="color:#c0392b">載入失敗，請重新整理頁面</div>';
+  }
+});
+
+// ============================================================
+// 服務列表
+// ============================================================
+function renderServices() {
+  const categories = {};
+  allServices.forEach(s => {
+    if (!categories[s.category]) categories[s.category] = [];
+    categories[s.category].push(s);
+  });
+
+  document.getElementById('serviceList').innerHTML = Object.entries(categories).map(([cat, items]) => `
+    <div class="category-label">${cat}</div>
+    <div class="service-grid">
+      ${items.map(s => `
+        <div class="service-card" id="svc_${s.id}" onclick="selectService('${s.id}')">
+          <div class="service-name">${s.name}</div>
+          <div class="service-price">${s.price}</div>
+          <div class="service-time">${
+            s.duration === -1 ? '⏱ 依髮況確認' :
+            s.duration === 0  ? `⏱ ${s.note}` :
+            `⏱ 約${s.duration}分鐘`
+          }</div>
+          ${s.note && s.duration > 0 && s.duration !== -1 ? `<div class="service-note">※ ${s.note}</div>` : ''}
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+}
+
+// ============================================================
+// 日期列表（含公休標示）
+// ============================================================
+function renderDates() {
+  const scroll  = document.getElementById('dateScroll');
+  const today   = new Date();
+  const closedDates = new Set(schedule.filter(s => s.type === 'closed').map(s => s.date));
+
+  for (let i = 0; i < 14; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() + i);
+    const dateStr = formatDate(d);
+    const isClosed = closedDates.has(dateStr);
+
+    const el = document.createElement('div');
+    el.className = 'date-item' + (isClosed ? ' closed' : '');
+    el.innerHTML = `
+      <div class="date-day">週${DAY_NAMES[d.getDay()]}</div>
+      <div class="date-num">${d.getDate()}</div>
+      <div class="date-month">${MONTH_NAMES[d.getMonth()]}</div>
+      ${isClosed ? '<div class="date-closed-label">公休</div>' : ''}
+    `;
+    if (!isClosed) el.onclick = () => selectDate(d, el);
+    scroll.appendChild(el);
+  }
+}
+
+// ============================================================
+// 選擇服務
+// ============================================================
+function selectService(id) {
+  state.service = allServices.find(s => s.id === id);
+  document.querySelectorAll('.service-card').forEach(c => c.classList.remove('selected'));
+  document.getElementById('svc_' + id).classList.add('selected');
+  document.getElementById('btn1').disabled = false;
+}
+
+// ============================================================
+// 選擇日期 → 抓已預約時段
+// ============================================================
+async function selectDate(date, el) {
+  state.date = date;
+  state.time = null;
+  document.querySelectorAll('.date-item').forEach(d => d.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('btn2').disabled = true;
+
+  const area    = document.getElementById('timeSlotArea');
+  const loading = document.getElementById('loadingSlots');
+
+  area.innerHTML = '';
+  loading.style.display = 'block';
+
+  const dateStr = formatDate(date);
+
+  try {
+    const res  = await fetch(`${GAS_URL}?action=getBookedSlots&date=${dateStr}`);
+    const data = await res.json();
+    const booked = new Set(data.slots || []);
+    loading.style.display = 'none';
+    renderTimeSlots(date, booked);
+  } catch (_) {
+    loading.style.display = 'none';
+    renderTimeSlots(date, new Set());
+  }
+}
+
+function renderTimeSlots(date, booked) {
+  const slots = BUSINESS_HOURS[date.getDay()];
+  document.getElementById('timeSlotArea').innerHTML = `
+    <div class="time-section-label">可預約時段</div>
+    <div class="time-grid">
+      ${slots.map(t => {
+        const isBooked = booked.has(t);
+        return `<div class="time-slot${isBooked ? ' booked' : ''}"
+          ${isBooked ? '' : `onclick="selectTime('${t}', this)"`}>
+          ${t}${isBooked ? '<br><span style="font-size:9px">已滿</span>' : ''}
+        </div>`;
+      }).join('')}
+    </div>
+  `;
+}
+
+function selectTime(time, el) {
+  state.time = time;
+  document.querySelectorAll('.time-slot').forEach(s => s.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('btn2').disabled = false;
+}
+
+// ============================================================
+// 加價服務
+// ============================================================
+function togglePriority() {
+  state.priority = !state.priority;
+  const check = document.getElementById('priorityCheck');
+  check.classList.toggle('checked', state.priority);
+  check.textContent = state.priority ? '✓' : '';
+}
+
+// ============================================================
+// 步驟切換
+// ============================================================
+function goStep(n) {
+  if (n === 4) {
+    const name  = document.getElementById('inputName').value.trim();
+    const phone = document.getElementById('inputPhone').value.trim();
+    const err   = document.getElementById('errorMsg3');
+    if (!name || !phone) { err.style.display = 'block'; return; }
+    err.style.display = 'none';
+    state.name  = name;
+    state.phone = phone;
+    state.note  = document.getElementById('inputNote').value.trim();
+    renderSummary();
+  }
+
+  for (let i = 1; i <= 4; i++) {
+    document.getElementById('step' + i).className = 'step' + (i < n ? ' done' : i === n ? ' active' : '');
+    const sec = document.getElementById('section' + i);
+    if (sec) sec.className = 'section' + (i === n ? ' active' : '');
+  }
+  window.scrollTo(0, 0);
+}
+
+function renderSummary() {
+  const dateStr = state.date
+    ? `${state.date.getMonth()+1}月${state.date.getDate()}日（週${DAY_NAMES[state.date.getDay()]}）`
+    : '';
+  document.getElementById('summaryBody').innerHTML = `
+    <div class="summary-row"><span class="summary-label">服務項目</span><span class="summary-value">${state.service?.name||''}</span></div>
+    <div class="summary-row"><span class="summary-label">服務費用</span><span class="summary-value">${state.service?.price||''}</span></div>
+    <div class="summary-row"><span class="summary-label">預約日期</span><span class="summary-value">${dateStr}</span></div>
+    <div class="summary-row"><span class="summary-label">預約時間</span><span class="summary-value">${state.time||''}</span></div>
+    <div class="summary-row"><span class="summary-label">姓名</span><span class="summary-value">${state.name}</span></div>
+    <div class="summary-row"><span class="summary-label">手機</span><span class="summary-value">${state.phone}</span></div>
+    ${state.note ? `<div class="summary-row"><span class="summary-label">備註</span><span class="summary-value">${state.note}</span></div>` : ''}
+    <div class="summary-row"><span class="summary-label">加價服務</span><span class="summary-value" style="color:${state.priority?'var(--gold-dark)':'var(--muted)'}">${state.priority?'✅ 已勾選（會員$250/非會員$350）':'否'}</span></div>
+  `;
+}
+
+// ============================================================
+// 送出預約
+// ============================================================
+async function submitBooking() {
+  const loading = document.getElementById('loadingSubmit');
+  const errMsg  = document.getElementById('errorMsg4');
+  const btn     = document.getElementById('btnSubmit');
+
+  loading.style.display = 'block';
+  btn.disabled = true;
+  errMsg.style.display = 'none';
+
+  const dateStr = state.date ? formatDate(state.date) : '';
+
+  const params = new URLSearchParams({
+    action:   'booking',
+    name:     state.name,
+    phone:    state.phone,
+    service:  state.service?.name || '',
+    date:     dateStr,
+    time:     state.time || '',
+    note:     state.note,
+    priority: state.priority ? 'yes' : 'no',
+  });
+
+  try {
+    const res  = await fetch(`${GAS_URL}?${params}`);
+    const data = await res.json();
+    loading.style.display = 'none';
+
+    if (data.status === 'ok') {
+      showSuccess();
+    } else {
+      errMsg.style.display = 'block';
+      btn.disabled = false;
+    }
+  } catch (_) {
+    loading.style.display = 'none';
+    errMsg.style.display = 'block';
+    btn.disabled = false;
+  }
+}
+
+function showSuccess() {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById('sectionSuccess').classList.add('active');
+  const dateStr = state.date
+    ? `${state.date.getMonth()+1}月${state.date.getDate()}日（週${DAY_NAMES[state.date.getDay()]}）`
+    : '';
+  document.getElementById('successDesc').innerHTML = `
+    <br><strong>${state.name}</strong> 您好！<br><br>
+    已收到您的預約申請 🙏<br><br>
+    📋 ${state.service?.name}<br>
+    📅 ${dateStr} ${state.time}<br><br>
+    Elsa 確認後會透過 LINE 通知您<br>
+    如有任何問題歡迎直接傳訊息給我們 😊
+  `;
+  for (let i = 1; i <= 4; i++) document.getElementById('step' + i).className = 'step done';
+}
+
+// ============================================================
+// 工具
+// ============================================================
+function formatDate(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+</script>
+</body>
+</html>
