@@ -239,7 +239,6 @@ textarea.form-input { resize: none; height: 80px; line-height: 1.6; }
 </div>
 
 <script>
-// ★ 請換成最新部署版本的 GAS URL（目前為73版，部署76版後請更新）
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbyG9T1UodoV3Zzag9OtC7SQDTiS3DfsqZFE1i7PrXSGxg_AW5C_GvOcmVgNOvlL3g6WQQ/exec';
 
 const BUSINESS_HOURS = {
@@ -255,11 +254,24 @@ const BUSINESS_HOURS = {
 const DAY_NAMES   = ['日','一','二','三','四','五','六'];
 const MONTH_NAMES = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
 
-let allServices = [];
-let schedule    = [];
-// ★ services 改為陣列支援多選
-let state = { services: [], date: null, time: null, name: '', phone: '', note: '', priority: false, memberType: '', priorityFee: 0 };
-let siteSettings = { priority_member_fee: 250, priority_nonmember_fee: 350, payment_jkopay_url: '', payment_ipass_url: '' };
+let allServices  = [];
+let schedule     = [];
+let state = {
+  services: [], date: null, time: null,
+  name: '', phone: '', note: '',
+  priority: false, memberType: '', priorityFee: 0
+};
+let siteSettings = {
+  priority_member_fee: 250, priority_nonmember_fee: 350,
+  payment_jkopay_url: '', payment_ipass_url: ''
+};
+
+function normalizeTime(input) {
+  const raw = String(input || '').trim();
+  const m = raw.match(/^(\d{1,2})(?::(\d{1,2}))?$/);
+  if (!m) return raw;
+  return String(parseInt(m[1],10)).padStart(2,'0') + ':' + String(parseInt(m[2]||'0',10)).padStart(2,'0');
+}
 
 document.addEventListener('DOMContentLoaded', async () => {
   try {
@@ -269,8 +281,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       fetch(`${GAS_URL}?action=getSchedule&t=${t}`, { cache: 'no-store' }),
       fetch(`${GAS_URL}?action=getSettings&t=${t}`, { cache: 'no-store' }),
     ]);
-    const svcData   = await svcRes.json();
-    const schedData = await schedRes.json();
+    const svcData      = await svcRes.json();
+    const schedData    = await schedRes.json();
     const settingsData = await settingsRes.json();
     (settingsData.settings || []).forEach(s => { siteSettings[s.key] = s.value; });
     allServices = (svcData.services || []).filter(s => s.active);
@@ -307,7 +319,6 @@ function renderServices() {
   `).join('');
 }
 
-// ★ 多選：點一下選取，再點一下取消
 function toggleService(id) {
   const idx = state.services.findIndex(s => s.id === id);
   if (idx >= 0) {
@@ -376,7 +387,7 @@ async function selectDate(date, el) {
   try {
     const res  = await fetch(`${GAS_URL}?action=getBookedSlots&date=${dateStr}&t=${Date.now()}`, { cache: 'no-store' });
     const data = await res.json();
-    const booked = new Set(data.slots || []);
+    const booked = new Set((data.slots || []).map(normalizeTime));
     loading.style.display = 'none';
     renderTimeSlots(date, booked);
   } catch (_) {
@@ -391,9 +402,10 @@ function renderTimeSlots(date, booked) {
     <div class="time-section-label">可預約時段</div>
     <div class="time-grid">
       ${slots.map(t => {
-        const isBooked = booked.has(t);
-        return `<div class="time-slot${isBooked ? ' booked' : ''}" ${isBooked ? '' : `onclick="selectTime('${t}', this)"`}>
-          ${t}${isBooked ? '<br><span style="font-size:9px">已滿</span>' : ''}
+        const nt       = normalizeTime(t);
+        const isBooked = booked.has(nt);
+        return `<div class="time-slot${isBooked ? ' booked' : ''}" ${isBooked ? '' : `onclick="selectTime('${nt}', this)"`}>
+          ${nt}${isBooked ? '<br><span style="font-size:9px">已滿</span>' : ''}
         </div>`;
       }).join('')}
     </div>
@@ -412,23 +424,21 @@ function togglePriority() {
   const check = document.getElementById('priorityCheck');
   check.classList.toggle('checked', state.priority);
   check.textContent = state.priority ? '✓' : '';
-  const area = document.getElementById('memberTypeArea');
-  area.style.display = state.priority ? 'block' : 'none';
+  document.getElementById('memberTypeArea').style.display = state.priority ? 'block' : 'none';
   if (!state.priority) { state.memberType = ''; state.priorityFee = 0; }
-  // 更新費用標籤
-  document.getElementById('memberFeeLabel').textContent = '$' + (siteSettings.priority_member_fee || 250);
+  document.getElementById('memberFeeLabel').textContent    = '$' + (siteSettings.priority_member_fee    || 250);
   document.getElementById('nonMemberFeeLabel').textContent = '$' + (siteSettings.priority_nonmember_fee || 350);
 }
 
 function selectMember(type) {
-  state.memberType = type;
+  state.memberType  = type;
   state.priorityFee = type === 'member'
-    ? Number(siteSettings.priority_member_fee || 250)
+    ? Number(siteSettings.priority_member_fee    || 250)
     : Number(siteSettings.priority_nonmember_fee || 350);
-  document.getElementById('btnMember').style.borderColor = type === 'member' ? 'var(--gold)' : 'var(--border)';
-  document.getElementById('btnMember').style.background = type === 'member' ? '#fdf6ee' : 'var(--surface)';
+  document.getElementById('btnMember').style.borderColor    = type === 'member'    ? 'var(--gold)' : 'var(--border)';
+  document.getElementById('btnMember').style.background     = type === 'member'    ? '#fdf6ee'     : 'var(--surface)';
   document.getElementById('btnNonMember').style.borderColor = type === 'nonmember' ? 'var(--gold)' : 'var(--border)';
-  document.getElementById('btnNonMember').style.background = type === 'nonmember' ? '#fdf6ee' : 'var(--surface)';
+  document.getElementById('btnNonMember').style.background  = type === 'nonmember' ? '#fdf6ee'     : 'var(--surface)';
 }
 
 function goStep(n) {
@@ -452,17 +462,17 @@ function goStep(n) {
 }
 
 function renderSummary() {
-  const dateStr = state.date ? `${state.date.getMonth()+1}月${state.date.getDate()}日（週${DAY_NAMES[state.date.getDay()]}）` : '';
+  const dateStr      = state.date ? `${state.date.getMonth()+1}月${state.date.getDate()}日（週${DAY_NAMES[state.date.getDay()]}）` : '';
   const serviceNames = state.services.map(s => s.name).join('、');
-  const priceLines = state.services.map(s => {
+  const priceLines   = state.services.map(s => {
     const num = parseInt(String(s.price).replace(/[^0-9]/g, ''));
     return { name: s.name, price: s.price, num: isNaN(num) ? 0 : num };
   });
-  const serviceTotal = priceLines.reduce((sum, p) => sum + p.num, 0);
-  const priorityFee  = state.priority && state.memberType ? state.priorityFee : 0;
-  const grandTotal   = serviceTotal + priorityFee;
+  const serviceTotal   = priceLines.reduce((sum, p) => sum + p.num, 0);
+  const priorityFee    = state.priority && state.memberType ? state.priorityFee : 0;
+  const grandTotal     = serviceTotal + priorityFee;
   const priceDetailHtml = priceLines.map(p => `${p.name} ${p.price}`).join('<br>');
-  const memberLabel = state.memberType === 'member' ? '會員' : state.memberType === 'nonmember' ? '非會員' : '';
+  const memberLabel    = state.memberType === 'member' ? '會員' : state.memberType === 'nonmember' ? '非會員' : '';
   document.getElementById('summaryBody').innerHTML = `
     <div class="summary-row"><span class="summary-label">服務項目</span><span class="summary-value">${serviceNames}</span></div>
     <div class="summary-row"><span class="summary-label">服務費用</span><span class="summary-value" style="font-size:12px;line-height:1.8">${priceDetailHtml}</span></div>
@@ -484,42 +494,53 @@ async function submitBooking() {
   btn.disabled = true;
   errMsg.style.display = 'none';
 
-  // ★ 送出前再查一次，確認時段還空著
+  const dateStr = state.date ? formatDate(state.date) : '';
+
+  // 送出前再查一次
   try {
-    const dateStr = state.date ? formatDate(state.date) : '';
     const checkRes  = await fetch(`${GAS_URL}?action=getBookedSlots&date=${dateStr}&t=${Date.now()}`, { cache: 'no-store' });
     const checkData = await checkRes.json();
-    const latestBooked = new Set(checkData.slots || []);
-    if (latestBooked.has(state.time)) {
+    const latestBooked = new Set((checkData.slots || []).map(normalizeTime));
+    if (latestBooked.has(normalizeTime(state.time))) {
       errMsg.textContent = '此時段剛剛已被預約，請返回重新選擇時間';
       errMsg.style.display = 'block';
       btn.disabled = false;
       loading.style.display = 'none';
       return;
     }
-  } catch (_) {
-    // 查詢失敗就讓 GAS 那邊擋，繼續送出
-  }
+  } catch (_) {}
 
-  const dateStr    = state.date ? formatDate(state.date) : '';
   const serviceStr = state.services.map(s => s.name).join('、');
-  const params  = new URLSearchParams({
-    action: 'booking', name: state.name, phone: state.phone,
-    service: serviceStr, date: dateStr,
-    time: state.time || '', note: state.note,
+  const params = new URLSearchParams({
+    action: 'booking',
+    name: state.name,
+    phone: state.phone,
+    service: serviceStr,
+    date: dateStr,
+    time: normalizeTime(state.time || ''),
+    note: state.note,
     priority: state.priority ? 'yes' : 'no',
     memberType: state.memberType || '',
   });
+
   try {
-    const res  = await fetch(`${GAS_URL}?${params}`);
+    const res  = await fetch(`${GAS_URL}?${params}`, { cache: 'no-store' });
     const data = await res.json();
     loading.style.display = 'none';
-    if (data.status === 'ok') { showSuccess(); }
-    else if (data.msg === 'slot_taken') {
+    if (data.status === 'ok') {
+      showSuccess(data.bookingId);
+    } else if (data.msg === 'slot_taken') {
       errMsg.textContent = '此時段已被預約，請返回重新選擇時間';
       errMsg.style.display = 'block';
       btn.disabled = false;
-    } else { errMsg.style.display = 'block'; btn.disabled = false; }
+    } else if (data.msg === 'missing_fields') {
+      errMsg.textContent = '資料未填完整，請重新確認';
+      errMsg.style.display = 'block';
+      btn.disabled = false;
+    } else {
+      errMsg.style.display = 'block';
+      btn.disabled = false;
+    }
   } catch (_) {
     loading.style.display = 'none';
     errMsg.style.display = 'block';
@@ -527,7 +548,7 @@ async function submitBooking() {
   }
 }
 
-function showSuccess() {
+function showSuccess(bookingId) {
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   document.getElementById('sectionSuccess').classList.add('active');
   const dateStr    = state.date ? `${state.date.getMonth()+1}月${state.date.getDate()}日（週${DAY_NAMES[state.date.getDay()]}）` : '';
@@ -536,7 +557,8 @@ function showSuccess() {
     <br><strong>${state.name}</strong> 您好！<br><br>
     已收到您的預約申請 🙏<br><br>
     📋 ${serviceStr}<br>
-    📅 ${dateStr} ${state.time}<br><br>
+    📅 ${dateStr} ${state.time}<br>
+    🔖 預約編號：${bookingId||''}<br><br>
     Elsa 確認後會透過 LINE 通知您<br>
     如有任何問題歡迎直接傳訊息給我們 😊
   `;
