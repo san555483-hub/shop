@@ -475,6 +475,9 @@ async function submitBooking() {
     loading.style.display = 'none';
     if (data.status === 'ok') {
       showSuccess(data.bookingId);
+    } else if (data.msg === 'blacklisted') {
+      errMsg.textContent = data.blMsg || '請改由 Elsa 為您現場安排預約，謝謝您 🙏';
+      errMsg.style.display = 'block'; btn.disabled = false;
     } else if (data.msg === 'slot_taken') {
       errMsg.textContent = '此時段已被預約，請返回重新選擇時間';
       errMsg.style.display = 'block'; btn.disabled = false;

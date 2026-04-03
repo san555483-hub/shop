@@ -428,15 +428,20 @@ async function loadBlacklist() {
     const data = await api({ action: 'getBlacklist' });
     const list = data.list || [];
     if (!list.length) { el.innerHTML = '<div class="loading">黑名單為空</div>'; return; }
-    el.innerHTML = '<table><thead><tr><th>電話</th><th>姓名</th><th>分類</th><th>備註</th><th>建立時間</th><th>操作</th></tr></thead><tbody>' +
+    el.innerHTML = '<table><thead><tr><th>電話</th><th>姓名</th><th>分類</th><th>備註</th><th>自訂提示文字</th><th>建立時間</th><th>操作</th></tr></thead><tbody>' +
       list.map(b => '<tr>' +
         '<td>' + b.phone + '</td>' +
-        '<td>' + (b.name||'—') + '</td>' +
-        '<td><span class="badge badge-black">' + (b.category||'其他') + '</span></td>' +
-        '<td style="font-size:12px">' + (b.remark||'') + '</td>' +
+        '<td><input style="width:70px;border:1px solid #ddd;border-radius:4px;padding:3px 6px;font-size:12px" value="' + (b.name||'') + '" id="blname_' + b.rowIndex + '"></td>' +
+        '<td><select style="border:1px solid #ddd;border-radius:4px;padding:3px 6px;font-size:12px" id="blcat_' + b.rowIndex + '">' +
+          ['爽約慣犯','騷擾客','拒絕服務','備註觀察'].map(t => '<option ' + (b.category===t?'selected':'') + '>' + t + '</option>').join('') + '</select></td>' +
+        '<td><input style="width:100px;border:1px solid #ddd;border-radius:4px;padding:3px 6px;font-size:12px" value="' + (b.remark||'') + '" id="blremark_' + b.rowIndex + '"></td>' +
+        '<td><input style="width:200px;border:1px solid #ddd;border-radius:4px;padding:3px 6px;font-size:12px" value="' + (b.customMsg||'') + '" placeholder="預設：請改由 Elsa 為您現場安排預約" id="blmsg_' + b.rowIndex + '"></td>' +
         '<td style="font-size:11px">' + (b.createdAt||'') + '</td>' +
-        '<td><button class="btn btn-green btn-sm" onclick="removeBlacklist(' + b.rowIndex + ')">移除</button></td>' +
-      '</tr>').join('') + '</tbody></table>';
+        '<td style="white-space:nowrap">' +
+          '<button class="btn btn-gold btn-sm" style="margin-right:4px" onclick="saveBlacklist(' + b.rowIndex + ')">儲存</button>' +
+          '<button class="btn btn-green btn-sm" onclick="removeBlacklist(' + b.rowIndex + ')">移除</button>' +
+        '</td></tr>'
+      ).join('') + '</tbody></table>';
   } catch(e) { el.innerHTML = '<div class="loading" style="color:red">載入失敗</div>'; }
 }
 
@@ -452,6 +457,18 @@ async function addBlacklist() {
     ['blPhone','blName','blRemark'].forEach(i => document.getElementById(i).value = '');
     loadBlacklist();
   } else { showMsg('msgBlacklist', '❌ ' + data.msg, false); }
+}
+
+async function saveBlacklist(rowIndex) {
+  const data = await api({
+    action: 'updateBlacklist', rowIndex,
+    name:      document.getElementById('blname_'   + rowIndex).value,
+    category:  document.getElementById('blcat_'    + rowIndex).value,
+    remark:    document.getElementById('blremark_' + rowIndex).value,
+    customMsg: document.getElementById('blmsg_'    + rowIndex).value,
+  });
+  if (data.status === 'ok') alert('✅ 已儲存');
+  else alert('❌ ' + data.msg);
 }
 
 async function removeBlacklist(rowIndex) {
