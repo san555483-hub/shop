@@ -419,11 +419,11 @@
 <div class="plan-banner">
   <div class="plan-left">
     <div class="plan-label">本次儲值方案</div>
-    <div class="plan-amount">$3,000</div>
+    <div class="plan-amount" id="planAmount">載入中...</div>
   </div>
   <div class="plan-right">
-    <div class="bonus-tag">🎁 贈送 $300</div>
-    <div class="bonus-note">合計可用 $3,300</div>
+    <div class="bonus-tag" id="planBonusTag">🎁 贈送 ...</div>
+    <div class="bonus-note" id="planTotal">合計可用 ...</div>
   </div>
 </div>
 
@@ -431,10 +431,7 @@
 <div class="pay-section">
   <div class="pay-title">▸ 支付方式</div>
   <div class="pay-methods" id="payMethods">
-    <button class="pay-btn" data-method="街口支付">街口支付</button>
-    <button class="pay-btn" data-method="iPASS">iPASS</button>
-    <button class="pay-btn" data-method="現金">現金</button>
-    <button class="pay-btn" data-method="轉帳">轉帳</button>
+    <!-- 動態從 GAS 設定讀取 -->
   </div>
 </div>
 
@@ -561,8 +558,65 @@ const urlParams = new URLSearchParams(location.search);
 const UID   = urlParams.get('uid') || '';
 const NAME  = urlParams.get('name') || '';
 const PHONE = urlParams.get('phone') || '';
-// GAS 部署網址
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbwEMdOB-L34EUI0RAzy5aSH-naUg7PgU_WD9y8oGb6LVF7fHZP7zRkLnC6GxOFfHy_nTw/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbyG9T1UodoV3Zzag9OtC7SQDTiS3DfsqZFE1i7PrXSGxg_AW5C_GvOcmVgNOvlL3g6WQQ/exec';
+
+// 從 Sheet 讀到的方案設定
+let PLAN_AMOUNT = 3000;
+let PLAN_BONUS  = 300;
+
+// ── 啟動：從 GAS 讀取系統設定 ────────────────────────────
+async function loadCreditSettings() {
+  try {
+    const res  = await fetch(GAS_URL + '?action=getSettings&t=' + Date.now());
+    const data = await res.json();
+    const map  = {};
+    (data.settings || []).forEach(s => { map[s.key] = s.value; });
+
+    // 方案金額
+    PLAN_AMOUNT = Number(map['credit_plan_amount'] || 3000);
+    PLAN_BONUS  = Number(map['credit_plan_bonus']  || 300);
+    const total = PLAN_AMOUNT + PLAN_BONUS;
+    document.getElementById('planAmount').textContent   = '$' + PLAN_AMOUNT.toLocaleString();
+    document.getElementById('planBonusTag').textContent = '🎁 贈送 $' + PLAN_BONUS.toLocaleString();
+    document.getElementById('planTotal').textContent    = '合計可用 $' + total.toLocaleString();
+
+    // 支付方式（只顯示 TRUE 的）
+    const payMap = [
+      { key: 'credit_pay_jko',      label: '街口支付' },
+      { key: 'credit_pay_ipass',    label: 'iPASS' },
+      { key: 'credit_pay_cash',     label: '現金' },
+      { key: 'credit_pay_transfer', label: '轉帳' },
+    ];
+    const container = document.getElementById('payMethods');
+    container.innerHTML = '';
+    payMap.forEach(p => {
+      if (String(map[p.key] || 'TRUE').toUpperCase() !== 'TRUE') return;
+      const btn = document.createElement('button');
+      btn.className = 'pay-btn';
+      btn.dataset.method = p.label;
+      btn.textContent = p.label;
+      container.appendChild(btn);
+    });
+    // 重新綁定點擊事件
+    container.addEventListener('click', e => {
+      const btn = e.target.closest('.pay-btn');
+      if (!btn) return;
+      container.querySelectorAll('.pay-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      selectedPay = btn.dataset.method;
+      checkReady();
+    });
+  } catch(e) {
+    // 讀取失敗用預設值
+    document.getElementById('planAmount').textContent   = '$3,000';
+    document.getElementById('planBonusTag').textContent = '🎁 贈送 $300';
+    document.getElementById('planTotal').textContent    = '合計可用 $3,300';
+    document.getElementById('payMethods').innerHTML =
+      ['街口支付','iPASS','現金','轉帳'].map(m =>
+        `<button class="pay-btn" data-method="${m}">${m}</button>`
+      ).join('');
+  }
+}
 
 // ── SignaturePad 初始化 ──────────────────────────────────
 const canvas = document.getElementById('signCanvas');
@@ -586,7 +640,7 @@ function initPad() {
   });
   pad.addEventListener('endStroke', checkReady);
 }
-window.addEventListener('load', initPad);
+window.addEventListener('load', () => { initPad(); loadCreditSettings(); });
 window.addEventListener('resize', () => {
   const data = pad ? pad.toData() : [];
   initPad();
@@ -640,8 +694,8 @@ async function submitSign() {
       uid:       UID,
       name:      NAME,
       phone:     PHONE,
-      amount:    3000,
-      bonus:     300,
+      amount:    PLAN_AMOUNT,
+      bonus:     PLAN_BONUS,
       payMethod: selectedPay,
       signUrl:   signDataUrl.substring(0, 500), // 截斷，完整版可改存 Firebase Storage
       note:      document.getElementById('noteInput').value

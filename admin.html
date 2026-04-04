@@ -795,8 +795,31 @@ function openAddCreditModal() {
   document.getElementById('ac-name').value  = currentCreditName;
   document.getElementById('ac-uid').value   = '';
   document.getElementById('ac-note').value  = '';
-  document.getElementById('ac-plan').value  = '3000';
-  updatePlanFields();
+  // 動態讀系統設定填入方案和支付方式
+  api({ action: 'getSettings' }).then(data => {
+    const map = {};
+    (data.settings || []).forEach(s => { map[s.key] = s.value; });
+    const amt   = Number(map['credit_plan_amount'] || 3000);
+    const bonus = Number(map['credit_plan_bonus']  || 300);
+    document.getElementById('ac-amount').value = amt;
+    document.getElementById('ac-bonus').value  = bonus;
+    document.getElementById('ac-plan').innerHTML =
+      `<option value="plan" selected>$${amt.toLocaleString()} 送 $${bonus.toLocaleString()}</option>
+       <option value="custom">自訂金額</option>`;
+    // 支付方式
+    const payMap = [
+      { key: 'credit_pay_cash',     label: '現金' },
+      { key: 'credit_pay_transfer', label: '轉帳' },
+      { key: 'credit_pay_jko',      label: '街口支付' },
+      { key: 'credit_pay_ipass',    label: 'iPASS' },
+    ];
+    document.getElementById('ac-pay').innerHTML = payMap
+      .filter(p => String(map[p.key] || 'TRUE').toUpperCase() === 'TRUE')
+      .map(p => `<option>${p.label}</option>`).join('');
+  }).catch(() => {
+    document.getElementById('ac-amount').value = 3000;
+    document.getElementById('ac-bonus').value  = 300;
+  });
   document.getElementById('addCreditModal').classList.add('show');
 }
 
