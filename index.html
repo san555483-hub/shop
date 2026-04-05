@@ -352,8 +352,8 @@ footer{background:var(--bark);color:rgba(255,255,255,.45);text-align:center;padd
     const verifier = genVerifier();
     const challenge = await genChallenge(verifier);
     const state = Math.random().toString(36).slice(2);
-    sessionStorage.setItem('line_verifier', verifier);
-    sessionStorage.setItem('line_state', state);
+    localStorage.setItem('line_verifier', verifier);
+    localStorage.setItem('line_state', state);
     const url = `https://access.line.me/oauth2/v2.1/authorize?response_type=code`
       + `&client_id=${LINE_CHANNEL_ID}`
       + `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`
@@ -378,7 +378,7 @@ footer{background:var(--bark);color:rgba(255,255,255,.45);text-align:center;padd
     const code = params.get('code');
     const state = params.get('state');
     if (!code) return;
-    if (state !== sessionStorage.getItem('line_state')) return;
+    if (state !== localStorage.getItem('line_state')) return;
 
     history.replaceState({}, '', location.pathname);
     showToast('LINE 登入中…');
@@ -388,7 +388,7 @@ footer{background:var(--bark);color:rgba(255,255,255,.45);text-align:center;padd
       const tokenParams = new URLSearchParams({
         action: 'lineToken',
         code,
-        verifier: sessionStorage.getItem('line_verifier'),
+        verifier: localStorage.getItem('line_verifier'),
         redirect: REDIRECT_URI,
         channelId: LINE_CHANNEL_ID
       });
