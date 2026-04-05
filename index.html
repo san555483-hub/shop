@@ -815,18 +815,16 @@ function submitOrderToSheet(orderNum,total,items,gift){
   // 判斷是否為服務券
   const isVoucher = items.includes('服務券') || items.includes('套餐');
 
-  fetch(GAS_URL, {
-    method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({
-      orderNum,
-      time: new Date().toLocaleString('zh-TW',{timeZone:'Asia/Taipei'}),
-      items, total, gift: gift||'無',
-      lineName, lineUid, phone, shipping, address, note,
-      payMethod: payMethod==='jko'?'街口':payMethod==='ipass'?'iPASS':'轉帳',
-      isVoucher: String(isVoucher)
-    })
-  }).catch(()=>{});
+  // GET 方式送出（避免 CORS 問題）
+  const orderParams = new URLSearchParams({
+    orderNum,
+    time: new Date().toLocaleString('zh-TW',{timeZone:'Asia/Taipei'}),
+    items, total, gift: gift||'無',
+    lineName, lineUid, phone, shipping, address, note,
+    payMethod: payMethod==='jko'?'街口':payMethod==='ipass'?'iPASS':'轉帳',
+    isVoucher: String(isVoucher)
+  });
+  fetch(GAS_URL + '?' + orderParams.toString()).catch(()=>{});
 }
 function closeOrderModal(){document.getElementById('order-modal-wrap').classList.remove('on');}
 async function goToPayment(method) {
