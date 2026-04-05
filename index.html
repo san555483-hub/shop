@@ -34,15 +34,6 @@ header{background:var(--bark);position:sticky;top:0;z-index:200;box-shadow:0 2px
 .line-history-btn{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;padding:4px 10px;border-radius:3px;font-size:.68rem;cursor:pointer;font-family:'Noto Sans TC',sans-serif;transition:all .2s;}
 .line-history-btn:hover{background:rgba(255,255,255,.25);}
 
-/* 強制登入遮罩 */
-#line-gate{position:fixed;inset:0;background:rgba(30,20,10,.82);z-index:9999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
-#line-gate.hidden{display:none;}
-.gate-box{background:var(--linen);border-radius:8px;padding:36px 28px;text-align:center;max-width:300px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.25);}
-.gate-logo{font-size:2.2rem;margin-bottom:8px;}
-.gate-title{font-family:'Playfair Display',serif;font-size:1.25rem;color:var(--ink);margin-bottom:6px;}
-.gate-sub{font-size:.75rem;color:var(--mid);font-family:'Noto Sans TC',sans-serif;line-height:1.6;margin-bottom:20px;}
-.gate-line-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:12px;background:#06C755;border:none;border-radius:5px;color:#fff;font-family:'Noto Sans TC',sans-serif;font-size:.88rem;font-weight:600;cursor:pointer;transition:opacity .2s;}
-.gate-line-btn:hover{opacity:.88;}
 /* 店家編輯列 */
 .edit-bar{background:rgba(201,137,122,.1);border-bottom:1px solid rgba(201,137,122,.28);padding:7px 24px;display:flex;align-items:center;justify-content:space-between;font-size:.7rem;color:var(--rose);font-family:'Noto Sans TC',sans-serif;letter-spacing:.03em;}
 .owner-actions{display:flex;gap:6px;}
@@ -293,28 +284,17 @@ footer{background:var(--bark);color:rgba(255,255,255,.45);text-align:center;padd
 </style>
 </head>
 <body>
-<!-- 強制 LINE 登入遮罩 -->
-<div id="line-gate">
-  <div class="gate-box">
-    <div class="gate-logo">💇</div>
-    <div class="gate-title">UNI髮型設計</div>
-    <div class="gate-sub">請先以 LINE 登入<br>以便追蹤您的訂單與享受會員優惠</div>
-    <button class="gate-line-btn" onclick="lineLogin()">
-      以 LINE 帳號登入
-    </button>
-  </div>
-</div>
 
 <!-- Firebase SDK -->
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
   import { getAuth, signInWithPopup, signOut, GoogleAuthProvider, signInWithCustomToken, onAuthStateChanged }
     from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-  import { getFirestore, doc, setDoc, getDoc, collection, addDoc, getDocs, orderBy, query, writeBatch, deleteDoc }
+  import { getFirestore, doc, setDoc, getDoc, collection, addDoc, getDocs, orderBy, query }
     from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
   const firebaseConfig = {
-    apiKey: "AIzaSyBIjbjkdA7h-rzZK4RKMBEwMNUg9R3kMqY",
+    apiKey: "AIzaSyD5_Qrz4gBznDjEDio7meDYmxHtmI09boc",
     authDomain: "uni-hair-shop.firebaseapp.com",
     projectId: "uni-hair-shop",
     storageBucket: "uni-hair-shop.firebasestorage.app",
@@ -333,18 +313,11 @@ footer{background:var(--bark);color:rgba(255,255,255,.45);text-align:center;padd
     try {
       const result = await signInWithPopup(auth, googleProvider);
       document.body.classList.add('owner-mode');
-      document.getElementById('edit-bar').style.display = 'block';
-      document.getElementById('btn-gift-edit').style.display = 'flex';
-      document.getElementById('btn-discount-edit').style.display = 'flex';
+      document.getElementById('edit-bar').style.display = 'flex';
       document.getElementById('owner-info').innerHTML =
         `<span class="owner-badge">✏️ 店家模式</span>
          <span style="font-size:.68rem;color:var(--mid);font-family:'Noto Sans TC',sans-serif">${result.user.email}</span>
          <button class="owner-logout" onclick="ownerLogout()">登出</button>`;
-      document.getElementById('btn-save-products').style.display = 'flex';
-      document.getElementById('btn-shipping-edit').style.display = 'flex';
-      // 店家登入後隱藏遮罩
-      const gate = document.getElementById('line-gate');
-      if (gate) gate.classList.add('hidden');
       showToast('✓ 店家已登入');
     } catch(e) { showToast('登入失敗：' + e.message); }
   };
@@ -353,9 +326,6 @@ footer{background:var(--bark);color:rgba(255,255,255,.45);text-align:center;padd
     await signOut(auth);
     document.body.classList.remove('owner-mode');
     document.getElementById('edit-bar').style.display = 'none';
-    document.getElementById('btn-gift-edit').style.display = 'none';
-    document.getElementById('btn-discount-edit').style.display = 'none';
-    document.getElementById('btn-save-products').style.display = 'none';
     document.getElementById('owner-info').innerHTML =
       `<button class="google-login-btn" onclick="ownerGoogleLogin()">
          <img src="https://www.google.com/favicon.ico" style="width:12px;height:12px"> 店家登入
@@ -363,108 +333,10 @@ footer{background:var(--bark);color:rgba(255,255,255,.45);text-align:center;padd
     showToast('已登出店家模式');
   };
 
-  // ── 商品 Firestore 儲存/讀取 ──
-  window.saveProductsToFirestore = async () => {
-    showToast('⏳ 儲存中…');
-    try {
-      const batch = writeBatch(db);
-      for(let p=0; p<5; p++){
-        for(let i=0; i<products[p].length; i++){
-          const prod = products[p][i];
-          const ref = doc(db, 'shop', 'products', 'pages', String(p), 'items', prod.id);
-          // imgSrc 可能很大，一起存
-          batch.set(ref, {
-            id: prod.id,
-            series: prod.series,
-            name: prod.name,
-            desc: prod.desc,
-            priceOrig: prod.priceOrig,
-            priceNow: prod.priceNow,
-            tag: prod.tag,
-            imgSrc: prod.imgSrc || '',
-            imgColor: prod.imgColor,
-            imgIcon: prod.imgIcon,
-            discType: prod.discType,
-            discThreshold: prod.discThreshold,
-            discAmount: prod.discAmount,
-            pageIndex: p,
-            itemIndex: i
-          });
-        }
-      }
-      await batch.commit();
-      showToast('✓ 商品已儲存到雲端！');
-    } catch(e) {
-      showToast('儲存失敗：' + e.message);
-      console.error(e);
-    }
-  };
-
-  // ── 儲存/載入店家設定（運費、折扣、贈品）──
-  window.saveShopSettings = async () => {
-    try {
-      await setDoc(doc(db, 'shop', 'settings'), {
-        shippingConfig: JSON.parse(JSON.stringify(shippingConfig)),
-        discountRules: JSON.parse(JSON.stringify(discountRules)),
-        giftRules: JSON.parse(JSON.stringify(giftRules)),
-        updatedAt: new Date().toISOString()
-      });
-      console.log('✓ 店家設定已儲存');
-    } catch(e) {
-      console.warn('儲存設定失敗', e);
-    }
-  };
-
-  window.loadShopSettings = async () => {
-    try {
-      const snap = await getDoc(doc(db, 'shop', 'settings'));
-      if(snap.exists()) {
-        const data = snap.data();
-        if(data.shippingConfig) {
-          shippingConfig.freeThreshold = data.shippingConfig.freeThreshold;
-          shippingConfig.methods = data.shippingConfig.methods;
-        }
-        if(data.discountRules) discountRules = data.discountRules;
-        if(data.giftRules) giftRules = data.giftRules;
-        updateCart();
-        console.log('✓ 店家設定已載入');
-      }
-    } catch(e) {
-      console.warn('載入設定失敗', e);
-    }
-  };
-
-  window.loadProductsFromFirestore = async () => {
-    try {
-      let hasData = false;
-      for(let p=0; p<5; p++){
-        const colRef = collection(db, 'shop', 'products', 'pages', String(p), 'items');
-        const snap = await getDocs(colRef);
-        if(!snap.empty){
-          hasData = true;
-          snap.docs.forEach(d => {
-            const data = d.data();
-            const i = data.itemIndex;
-            if(products[p] && products[p][i]){
-              products[p][i] = {...products[p][i], ...data};
-            }
-          });
-        }
-      }
-      if(hasData){
-        if(typeof renderPages==='function') renderPages();
-        else setTimeout(()=>{ if(typeof renderPages==='function') renderPages(); },500);
-        console.log('✓ 商品已從 Firestore 載入');
-      }
-    } catch(e) {
-      console.warn('載入商品失敗', e);
-    }
-  };
-
   // ── LINE Login ──
-  const LINE_CHANNEL_ID = '2009635359';
+  const LINE_CHANNEL_ID = '2008844605';
   const REDIRECT_URI = 'https://san555483-hub.github.io/';
-  const GAS_URL_AUTH = 'https://script.google.com/macros/s/AKfycbzZN7kVXamDWwjJlxWFWZGTofuBfwFsCYc0nRBLbwq8fDuGcsTz3Wigqc-iVEfQb3yC2A/exec';
+  const GAS_URL_AUTH = 'https://script.google.com/macros/s/AKfycbwFLBUwkVoxXOccvgUWdsbaMt4TmAorHHIQOEsWlek9rEGi1YzoMnZi2-JnBEOG56xmxw/exec';
 
   function genVerifier() {
     const arr = new Uint8Array(32);
@@ -515,7 +387,7 @@ footer{background:var(--bark);color:rgba(255,255,255,.45);text-align:center;padd
       // Step 1: 換 access token（透過 GAS）
       const tokenRes = await fetch(GAS_URL_AUTH + '?action=lineToken', {
         method: 'POST',
-        headers: {'Content-Type':'text/plain'},
+        headers: {'Content-Type':'application/json'},
         body: JSON.stringify({
           code,
           verifier: sessionStorage.getItem('line_verifier'),
@@ -535,7 +407,7 @@ footer{background:var(--bark);color:rgba(255,255,255,.45);text-align:center;padd
       // Step 3: 向 GAS 要 Firebase Custom Token
       const ctRes = await fetch(GAS_URL_AUTH + '?action=customToken', {
         method: 'POST',
-        headers: {'Content-Type':'text/plain'},
+        headers: {'Content-Type':'application/json'},
         body: JSON.stringify({
           lineUserId: profile.userId,
           displayName: profile.displayName,
@@ -560,8 +432,6 @@ footer{background:var(--bark);color:rgba(255,255,255,.45);text-align:center;padd
       sessionStorage.setItem('line_uid', uid);
       sessionStorage.setItem('line_name', profile.displayName);
       sessionStorage.setItem('line_pic', profile.pictureUrl || '');
-      const gate = document.getElementById('line-gate');
-      if (gate) gate.classList.add('hidden');
       renderLineBar({ name: profile.displayName, pic: profile.pictureUrl });
       showToast('✓ 歡迎！' + profile.displayName);
     } catch(e) {
@@ -607,22 +477,12 @@ footer{background:var(--bark);color:rgba(255,255,255,.45);text-align:center;padd
   };
 
   // 頁面載入時，恢復 LINE 登入狀態
-  window.addEventListener('DOMContentLoaded', async () => {
+  window.addEventListener('DOMContentLoaded', () => {
     handleLineCallback();
     const name = sessionStorage.getItem('line_name');
     const pic = sessionStorage.getItem('line_pic');
-    if (name) {
-      // LINE 已登入，隱藏遮罩
-      const gate = document.getElementById('line-gate');
-      if (gate) gate.classList.add('hidden');
-      renderLineBar({ name, pic });
-    } else {
-      renderLineBar(null);
-      // 非店家模式才顯示遮罩（店家用 Google 登入，onAuthStateChanged 處理）
-    }
-    // 載入店家設定（運費、折扣、贈品）
-    await loadShopSettings();
-    // 商品由下方 setTimeout 載入
+    if (name) renderLineBar({ name, pic });
+    else renderLineBar(null);
   });
 
   function renderLineBar(user) {
@@ -668,8 +528,6 @@ footer{background:var(--bark);color:rgba(255,255,255,.45);text-align:center;padd
       </div>
       <button class="h-btn" id="btn-gift-edit" onclick="openModal('gift-edit')" style="display:none">⚙️ <span>編輯贈品</span></button>
       <button class="h-btn" id="btn-discount-edit" onclick="openModal('discount-edit')" style="display:none">💰 <span>折扣設定</span></button>
-      <button class="h-btn" id="btn-save-products" onclick="saveProductsToFirestore()" style="display:none;background:rgba(122,140,110,.25);border-color:var(--moss)">☁️ <span>儲存商品</span></button>
-      <button class="h-btn" id="btn-shipping-edit" onclick="openModal('shipping-edit')" style="display:none">🚚 <span>運費設定</span></button>
       <button class="h-btn cart-btn" onclick="toggleCart()">🛒 <span>購物車</span><span class="cart-badge" id="cart-count">0</span></button>
     </div>
   </div>
@@ -682,7 +540,11 @@ footer{background:var(--bark);color:rgba(255,255,255,.45);text-align:center;padd
 
 <!-- 店家編輯列（登入後才顯示） -->
 <div class="edit-bar" id="edit-bar" style="display:none">
-  ✏️ 店家模式：點擊商品文字直接編輯 · 圖片區域拖拉或點擊上傳
+  <span>✏️ 點擊商品文字直接編輯 · 圖片區域拖拉或點擊上傳</span>
+  <div class="owner-actions">
+    <button class="h-btn" onclick="openModal('gift-edit')" style="border-color:var(--rose);color:var(--rose)">⚙️ 編輯贈品</button>
+    <button class="h-btn" onclick="openModal('discount-edit')" style="border-color:var(--gold);color:var(--gold)">💰 折扣設定</button>
+  </div>
 </div>
 
 <div class="hero">
@@ -746,7 +608,7 @@ footer{background:var(--bark);color:rgba(255,255,255,.45);text-align:center;padd
     <div class="discount-bar" id="discount-bar"></div>
     <div class="sb-discount-row" id="discount-row" style="display:none"><span class="sb-discount-lbl">🎉 折扣</span><span class="sb-discount-val" id="discount-val">-NT$ 0</span></div>
     <div class="sb-final-row" id="final-row" style="display:none"><span class="sb-final-lbl">結帳金額</span><span class="sb-final-val" id="cart-final">NT$ 0</span></div>
-    <div class="gift-selector-wrap" id="gift-selector-wrap"><div class="gift-label" id="gift-auto-label"></div></div>
+    <div class="gift-selector-wrap" id="gift-selector-wrap"><div class="gift-label">🎁 恭喜！您已符合贈品兌換資格，請選擇：</div><select class="gift-select" id="gift-choice"></select></div>
     <button class="checkout-btn" id="checkout-btn" disabled onclick="openOrderModal()">填寫訂單 → 前往付款</button>
   </div>
 </div>
@@ -809,192 +671,29 @@ footer{background:var(--bark);color:rgba(255,255,255,.45);text-align:center;padd
   </div>
 </div>
 
-<!-- 運費說明彈窗 -->
-<div class="modal-wrap" id="modal-shipping-info" style="z-index:600">
-  <div class="modal" style="max-width:480px">
-    <div class="modal-head"><h3>🚚 配送資訊 & 運費試算</h3><button class="modal-close" onclick="closeModal('shipping-info')">✕</button></div>
-    <div class="modal-body" style="padding:0">
-
-      <!-- 運費試算 -->
-      <div style="background:var(--sand);padding:16px 20px;border-bottom:1px solid var(--border)">
-        <div style="font-size:.78rem;font-weight:600;color:var(--bark);margin-bottom:10px">💰 運費試算</div>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <select id="calc-method" onchange="calcShipping()" style="flex:1;padding:7px 10px;border:1.5px solid var(--border);border-radius:3px;font-family:'Noto Serif TC',serif;font-size:.78rem;background:#fff">
-            <option value="cvs">超商取貨</option>
-            <option value="blackcat">黑貓宅配</option>
-            <option value="local">外送到府</option>
-          </select>
-          <div style="display:flex;align-items:center;gap:4px">
-            <input type="number" id="calc-weight" placeholder="重量(kg)" min="0.1" step="0.1" onchange="calcShipping()" style="width:90px;padding:7px 8px;border:1.5px solid var(--border);border-radius:3px;font-size:.78rem;font-family:'Noto Serif TC',serif">
-            <span style="font-size:.72rem;color:var(--mid)">kg</span>
-          </div>
-        </div>
-        <div id="calc-result" style="margin-top:10px;padding:8px 12px;background:#fff;border-radius:4px;font-size:.82rem;color:var(--bark);font-family:'Noto Sans TC',sans-serif;min-height:36px;border:1px solid var(--border)">
-          請選擇配送方式並輸入重量
-        </div>
-      </div>
-
-      <!-- 配送說明 -->
-      <div style="padding:16px 20px">
-        <div style="font-size:.78rem;font-weight:600;color:var(--bark);margin-bottom:10px">📦 超商取貨（全家/7-11/萊爾富）</div>
-        <table style="width:100%;font-size:.72rem;font-family:'Noto Sans TC',sans-serif;border-collapse:collapse;margin-bottom:6px">
-          <tr style="background:var(--sand)"><th style="padding:5px 8px;text-align:left;font-weight:600">重量</th><th style="padding:5px 8px;text-align:right;font-weight:600">運費</th></tr>
-          <tr><td style="padding:5px 8px;border-bottom:1px solid var(--border)">1kg 以下</td><td style="padding:5px 8px;text-align:right;border-bottom:1px solid var(--border)">NT$ 60</td></tr>
-          <tr><td style="padding:5px 8px;border-bottom:1px solid var(--border)">1 ~ 5kg</td><td style="padding:5px 8px;text-align:right;border-bottom:1px solid var(--border)">NT$ 60</td></tr>
-          <tr><td style="padding:5px 8px;color:#e05050">5kg 以上</td><td style="padding:5px 8px;text-align:right;color:#e05050">不支援</td></tr>
-        </table>
-        <div style="font-size:.65rem;color:var(--mid);margin-bottom:14px">材積限 105cm，單邊 ≦ 45cm，總重不可超過 5kg</div>
-
-        <div style="font-size:.78rem;font-weight:600;color:var(--bark);margin-bottom:10px">🐱 黑貓宅配</div>
-        <table style="width:100%;font-size:.72rem;font-family:'Noto Sans TC',sans-serif;border-collapse:collapse;margin-bottom:6px">
-          <tr style="background:var(--sand)"><th style="padding:5px 8px;text-align:left;font-weight:600">重量</th><th style="padding:5px 8px;text-align:right;font-weight:600">運費</th></tr>
-          <tr><td style="padding:5px 8px;border-bottom:1px solid var(--border)">1kg 以下</td><td style="padding:5px 8px;text-align:right;border-bottom:1px solid var(--border)">NT$ 130</td></tr>
-          <tr><td style="padding:5px 8px;border-bottom:1px solid var(--border)">1 ~ 5kg</td><td style="padding:5px 8px;text-align:right;border-bottom:1px solid var(--border)">NT$ 170</td></tr>
-          <tr><td style="padding:5px 8px">5kg 以上</td><td style="padding:5px 8px;text-align:right">NT$ 210 起</td></tr>
-        </table>
-        <div style="font-size:.65rem;color:var(--mid);margin-bottom:14px">依尺寸計費，上限 20kg</div>
-
-        <div style="font-size:.78rem;font-weight:600;color:var(--bark);margin-bottom:6px">🏍️ 外送到府（限附近居民）</div>
-        <div style="font-size:.72rem;color:var(--mid);font-family:'Noto Sans TC',sans-serif;margin-bottom:14px">免運費 · 限店址周邊 1 公里內或消費滿額</div>
-
-        <!-- 寄件工具 -->
-        <div style="background:var(--rose-lt);border-radius:4px;padding:12px 14px;margin-bottom:12px">
-          <div style="font-size:.72rem;font-weight:600;color:var(--bark);margin-bottom:8px">📬 物流填單工具</div>
-          <a href="https://myship.7-11.com.tw/" target="_blank" style="display:block;font-size:.7rem;color:var(--rose);margin-bottom:4px;font-family:'Noto Sans TC',sans-serif">● 超商寄件（7-11 my ship）→</a>
-          <a href="https://www.t-cat.com.tw/Inquire/I_Takkyubin.aspx" target="_blank" style="display:block;font-size:.7rem;color:var(--rose);font-family:'Noto Sans TC',sans-serif">● 黑貓宅急便預約 →</a>
-        </div>
-
-        <!-- 包裝提醒 -->
-        <div style="background:rgba(184,137,90,.08);border-left:3px solid var(--gold);padding:10px 12px;border-radius:0 4px 4px 0">
-          <div style="font-size:.72rem;font-weight:600;color:var(--bark);margin-bottom:6px">📦 寄件包裝提醒</div>
-          <div style="font-size:.68rem;color:var(--mid);line-height:1.8;font-family:'Noto Sans TC',sans-serif">
-            1. 髮品按壓頭：務必纏繞膠帶固定，避免溢漏<br>
-            2. 防撞包裝：氣泡紙包覆 2 層以上，確保無晃動<br>
-            3. 超過 5kg 請改用黑貓，避免超商退件
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- 運費設定彈窗 -->
-<div class="modal-wrap" id="modal-shipping-edit">
-  <div class="modal">
-    <div class="modal-head"><h3>🚚 運費設定</h3><button class="modal-close" onclick="closeModal('shipping-edit')">✕</button></div>
-    <div class="modal-body">
-      <div style="margin-bottom:14px">
-        <label style="font-size:.75rem;font-weight:600;color:var(--bark);display:block;margin-bottom:6px">🎉 滿額免運門檻（NT$）</label>
-        <input type="number" id="shipping-free-threshold" class="disc-input" placeholder="例：1500" style="width:100%">
-        <div style="font-size:.65rem;color:var(--mid);margin-top:4px;font-family:'Noto Sans TC',sans-serif">設為 0 表示不提供免運</div>
-      </div>
-      <div style="font-size:.75rem;font-weight:600;color:var(--bark);margin-bottom:8px">各配送方式運費（NT$）</div>
-      <div id="shipping-method-edit-list"></div>
-      <button class="form-submit" onclick="saveShippingConfig()" style="margin-top:12px">儲存運費設定</button>
-    </div>
-  </div>
-</div>
-
 <!-- 訂單確認彈窗 -->
 <div class="order-modal-wrap" id="order-modal-wrap">
   <div class="order-modal">
-
-    <!-- Step 1: 填寫資料 -->
-    <div id="order-step1">
-      <div class="order-modal-top">
-        <div class="order-check">📋</div>
-        <h3>填寫配送資料</h3>
-        <p>請填寫以下資料以完成訂單</p>
-      </div>
-      <div class="order-body">
-        <div class="order-items" id="order-items-preview"></div>
-
-        <!-- 配送方式 -->
-        <div class="form-group" style="margin-bottom:12px">
-          <label class="form-label" style="font-size:.75rem;font-weight:600;color:var(--bark);margin-bottom:6px;display:block">🚚 配送方式</label>
-          <select class="form-select" id="shipping-method" onchange="updateShippingFee()" style="width:100%;padding:8px 11px;border:1.5px solid var(--border);border-radius:3px;font-family:'Noto Serif TC',serif;font-size:.8rem;background:var(--linen)">
-          </select>
-          <div id="shipping-fee-hint" style="font-size:.7rem;color:var(--moss);margin-top:4px;font-family:'Noto Sans TC',sans-serif"></div>
-          <div style="margin-top:6px"><a href="javascript:void(0)" onclick="openModal('shipping-info')" style="font-size:.68rem;color:var(--rose);font-family:'Noto Sans TC',sans-serif;text-decoration:underline">📋 查看完整運費說明 & 試算 →</a></div>
-        </div>
-
-        <!-- 電話 -->
-        <div class="form-group" style="margin-bottom:12px">
-          <label class="form-label" style="font-size:.75rem;font-weight:600;color:var(--bark);margin-bottom:6px;display:block">📱 聯絡電話</label>
-          <input class="form-input" id="order-phone" type="tel" placeholder="請輸入手機號碼" style="width:100%;padding:8px 11px;border:1.5px solid var(--border);border-radius:3px;font-family:'Noto Serif TC',serif;font-size:.8rem;background:var(--linen)">
-        </div>
-
-        <!-- 地址/門市 -->
-        <div id="order-address-wrap" style="margin-bottom:12px;display:none">
-          <label class="form-label" style="font-size:.75rem;font-weight:600;color:var(--bark);margin-bottom:6px;display:block" id="order-address-label">📍 地址</label>
-          <input class="form-input" id="order-address" type="text" placeholder="請輸入地址或門市" style="width:100%;padding:8px 11px;border:1.5px solid var(--border);border-radius:3px;font-family:'Noto Serif TC',serif;font-size:.8rem;background:var(--linen)">
-        </div>
-
-        <!-- 備註 -->
-        <div class="form-group" style="margin-bottom:16px">
-          <label class="form-label" style="font-size:.75rem;font-weight:600;color:var(--bark);margin-bottom:6px;display:block">📝 備註</label>
-          <textarea id="order-note" placeholder="其他說明（選填）" style="width:100%;padding:8px 11px;border:1.5px solid var(--border);border-radius:3px;font-family:'Noto Serif TC',serif;font-size:.8rem;background:var(--linen);height:64px;resize:none;outline:none"></textarea>
-        </div>
-
-        <!-- 金額總計 -->
-        <div style="background:var(--sand);border-radius:4px;padding:12px 14px;margin-bottom:16px">
-          <div style="display:flex;justify-content:space-between;font-size:.78rem;margin-bottom:4px">
-            <span style="color:var(--mid)">商品小計</span>
-            <span id="step1-subtotal">NT$ 0</span>
-          </div>
-          <div style="display:flex;justify-content:space-between;font-size:.78rem;margin-bottom:4px" id="step1-discount-row" style="display:none">
-            <span style="color:var(--moss)">🎉 折扣</span>
-            <span id="step1-discount" style="color:var(--moss)">-NT$ 0</span>
-          </div>
-          <div style="display:flex;justify-content:space-between;font-size:.78rem;margin-bottom:4px">
-            <span style="color:var(--mid)">運費</span>
-            <span id="step1-shipping">NT$ 0</span>
-          </div>
-          <div style="display:flex;justify-content:space-between;font-size:.95rem;font-weight:700;border-top:1px solid var(--border);padding-top:8px;margin-top:4px">
-            <span style="color:var(--bark)">總計</span>
-            <span id="step1-total" style="color:var(--bark);font-family:'Playfair Display',serif">NT$ 0</span>
-          </div>
-        </div>
-
-        <div class="order-actions">
-          <button class="order-pay-btn" onclick="submitOrderStep1()">確認送出訂單 →</button>
-          <button class="order-close-btn" onclick="closeOrderModal()">取消</button>
-        </div>
-      </div>
+    <div class="order-modal-top">
+      <div class="order-check">🎉</div>
+      <h3>訂單確認</h3>
+      <p>請截圖保存，來店出示兌換贈品</p>
+      <div class="order-num-wrap"><div class="order-num-label">訂單編號</div><div class="order-num" id="order-number">UNI-000000</div></div>
     </div>
-
-    <!-- Step 2: 訂單確認 -->
-    <div id="order-step2" style="display:none">
-      <div class="order-modal-top">
-        <div class="order-check">🎉</div>
-        <h3>訂單確認</h3>
-        <p>請截圖保存此頁面</p>
-        <div class="order-num-wrap"><div class="order-num-label">訂單編號</div><div class="order-num" id="order-number">UNI-000000</div></div>
+    <div class="order-body">
+      <div class="order-items" id="order-items"></div>
+      <div class="order-gift-row" id="order-gift-row" style="display:none"></div>
+      <div class="order-notice"><div class="n-icon">🏪</div><h4>來店兌換贈品</h4><p>請截圖保存此頁面，<br>憑訂單編號來店兌換您選擇的贈品。</p></div>
+      <div class="order-screenshot-hint">📸 建議截圖保存此畫面</div>
+      <div style="margin-bottom:12px;font-size:13px;color:#888;text-align:center;">選擇付款方式</div>
+      <div class="order-actions">
+        <button class="order-pay-btn" onclick="goToPayment('jko')" style="background:#e03c3c;">🟡 街口付款</button>
+        <button class="order-pay-btn" onclick="goToPayment('ipass')" style="background:#1a6fc4;margin-top:8px;">🔵 iPASS付款</button>
+        <button class="order-pay-btn" onclick="showTransferInfo()" style="background:#2d7a4f;margin-top:8px;">🏦 轉帳付款</button>
+        <button class="order-close-btn" onclick="closeOrderModal()">關閉</button>
       </div>
-      <div class="order-body">
-        <div class="order-items" id="order-items"></div>
-        <div class="order-gift-row" id="order-gift-row" style="display:none"></div>
-        <div id="order-shipping-info" style="background:rgba(122,140,110,.08);border-left:3px solid var(--moss);padding:8px 12px;font-size:.75rem;color:var(--ink);margin-bottom:16px;border-radius:0 3px 3px 0;font-family:'Noto Sans TC',sans-serif;line-height:1.8"></div>
-        <div class="order-notice">
-          <div class="n-icon">📦</div>
-          <h4>溫馨提醒</h4>
-          <p style="text-align:left;line-height:1.9">
-            📸 請截圖保存此頁面，憑訂單編號取貨。<br>
-            ⏰ 超商取貨請於到件後 <strong>3天內</strong> 領取，逾期將自動退件。<br>
-            🔄 退件處理方式：<br>
-            &nbsp;&nbsp;① 可親自來店取貨<br>
-            &nbsp;&nbsp;② 已達免運門檻的訂單，重新寄送須自行負擔運費<br>
-            💬 如有任何問題，歡迎透過 LINE 與我們聯繫 🙏
-          </p>
-        </div>
-        <div class="order-screenshot-hint">📸 建議截圖保存此畫面</div>
-        <div class="order-actions">
-          <button class="order-pay-btn" onclick="goToPayment()">前往街口付款 →</button>
-          <button class="order-close-btn" onclick="closeOrderModal()">關閉</button>
-        </div>
-      </div>
+      <div id="transfer-info" style="display:none;margin-top:12px;background:#f0f7f3;border-radius:8px;padding:12px;font-size:13px;text-align:center;line-height:1.8;"></div>
     </div>
-
   </div>
 </div>
 
@@ -1023,19 +722,7 @@ const PH_COLORS=['linear-gradient(145deg,#3d2b1f,#6b4226)','linear-gradient(145d
 const PH_ICONS=['🌿','✨','🫙','🌸','🌾','🍃','💧','🧴','🪴','🌻','🫚','🌱','🍂','🌼','💫','🌙','🪷','🌺','🫐','🌊'];
 const HAIR_ICONS=['💇','✂️','🪮','🎀','💈','🧣','🫧','🪥','🎭','💫','🌀','🪞','🎗️','🎀','💅','🌈','⭐','🎠','🪄','💎'];
 let products={};
-// 贈品設定：{threshold: 滿額金額, name: 贈品名稱}
-let giftRules=[{threshold:500, name:'贈品名稱（請店家修改）'}];
-
-// 運費設定
-let shippingConfig = {
-  freeThreshold: 3000,  // 滿額免運門檻
-  methods: [
-    { id: 'pickup',   name: '到店取貨',              fee: 0 },
-    { id: 'local',    name: '外送到府（附近居民）',    fee: 0 },
-    { id: 'cvs',      name: '超商取貨（依重量）',      fee: 60 },
-    { id: 'blackcat', name: '黑貓宅配（依重量）',      fee: 130 },
-  ]
-};
+let giftOptions=['贈品 A（請自行修改）','贈品 B（請自行修改）','贈品 C（請自行修改）'];
 let currentOrderNum='';
 
 function initProducts(){for(let p=0;p<5;p++){products[p]=[];const isHair=(p===4);const icons=isHair?HAIR_ICONS:PH_ICONS;for(let i=0;i<20;i++){products[p].push({id:`p${p}i${i}`,series:isHair?'美髮周邊':'系列名稱',name:isHair?['髮夾組合','造型髮圈','洗髮刷','護髮噴霧','定型液','捲髮棒','梳子套組','髮帶組','頭皮按摩梳','造型慕斯','抗靜電梳','固定噴霧','蓬鬆粉','造型蠟','護色噴霧','捲髮棒組','直髮梳','頭皮精華','護髮噴霧','髮型固定液'][i]:'商品名稱',desc:isHair?'美髮造型周邊，提升日常護髮體驗。':'商品描述，點擊可直接編輯內容。',priceOrig:'',priceNow:'0',tag:i<2?(isHair?'NEW':'體驗價'):'',imgSrc:null,imgColor:PH_COLORS[i%PH_COLORS.length],imgIcon:icons[i%icons.length],discType:'qty',discThreshold:0,discAmount:0});}}}
@@ -1060,10 +747,6 @@ function calcProdDiscount(cartItem){const[p,i]=findProd(cartItem.id);const prod=
 function addCart(btn){const card=btn.closest('.product-card'),pid=btn.dataset.pid,qty=parseInt(card.querySelector('.qty-num').value);const[p,i]=findProd(pid),prod=products[p][i],price=parseInt(prod.priceNow)||0;const ex=cart.find(x=>x.id===pid);if(ex)ex.qty+=qty;else cart.push({id:pid,name:prod.name,series:prod.series,price,qty,imgSrc:prod.imgSrc,imgColor:prod.imgColor,imgIcon:prod.imgIcon});updateCart();showToast('✓ 已加入購物車');btn.textContent='✓ 已加入';btn.classList.add('done');setTimeout(()=>{btn.textContent='加入購物車';btn.classList.remove('done');},1500);}
 function removeItem(id){cart=cart.filter(x=>x.id!==id);updateCart();}
 let discountRules=[];
-function calcAutoGift(total){
-  const matched = giftRules.filter(r=>r.threshold>0&&r.name&&total>=r.threshold).sort((a,b)=>b.threshold-a.threshold);
-  return matched.length>0 ? matched[0].name : null;
-}
 function calcDiscount(total){const sorted=discountRules.filter(r=>r.threshold>0&&r.discount>0).sort((a,b)=>b.threshold-a.threshold);const matched=sorted.find(r=>total>=r.threshold);const next=sorted.slice().reverse().find(r=>total<r.threshold);return{matched,next};}
 function updateCart(){
   const count=cart.reduce((s,x)=>s+x.qty,0),subtotal=cart.reduce((s,x)=>s+x.price*x.qty,0);
@@ -1074,24 +757,7 @@ function updateCart(){
   const finalTotal=subtotal-totalDiscount;
   document.getElementById('cart-count').textContent=count;
   document.getElementById('cart-total').textContent='NT$ '+subtotal.toLocaleString();
-  // 自動贈品顯示
-  const autoGift = calcAutoGift(subtotal);
-  const giftWrap = document.getElementById('gift-selector-wrap');
-  const giftLabel = document.getElementById('gift-auto-label');
-  if(subtotal>0 && giftRules.length>0){
-    const nextRule = giftRules.filter(r=>r.threshold>subtotal).sort((a,b)=>a.threshold-b.threshold)[0];
-    if(autoGift){
-      giftWrap.style.display='block';
-      giftLabel.innerHTML='🎁 恭喜！滿額贈品：<strong>'+autoGift+'</strong>（隨貨附贈）';
-    } else if(nextRule){
-      giftWrap.style.display='block';
-      giftLabel.innerHTML='🎁 再消費 NT$'+(nextRule.threshold-subtotal).toLocaleString()+' 即贈送：'+nextRule.name;
-    } else {
-      giftWrap.style.display='none';
-    }
-  } else {
-    giftWrap.style.display='none';
-  }
+  document.getElementById('gift-selector-wrap').style.display=subtotal>0?'block':'none';
   document.getElementById('checkout-btn').disabled=!cart.length;
   const discountBar=document.getElementById('discount-bar');
   const discountNext=document.getElementById('discount-next');
@@ -1106,200 +772,102 @@ function updateCart(){
 function renderDiscountEditList(){document.getElementById('discount-edit-list').innerHTML=discountRules.map((r,i)=>`<div class="discount-edit-row"><span>滿</span><input type="number" value="${r.threshold}" id="dt-${i}" placeholder="金額" min="0"><span>折</span><input type="number" value="${r.discount}" id="dd-${i}" placeholder="折扣金額" min="0"><button class="discount-rm" onclick="removeDiscountRule(${i})">✕</button></div>`).join('');}
 function addDiscountRule(){discountRules.push({threshold:0,discount:0});renderDiscountEditList();}
 function removeDiscountRule(i){discountRules.splice(i,1);renderDiscountEditList();}
-function saveDiscounts(){discountRules=discountRules.map((_,i)=>({threshold:parseInt(document.getElementById(`dt-${i}`).value)||0,discount:parseInt(document.getElementById(`dd-${i}`).value)||0})).filter(r=>r.threshold>0&&r.discount>0);updateCart();closeModal('discount-edit');showToast('✓ 折扣設定已儲存');if(typeof saveShopSettings==='function')saveShopSettings();}
-function renderGiftSelect(){} // 已改為自動贈品
-
-function calcShipping(){
-  const method = document.getElementById('calc-method').value;
-  const weight = parseFloat(document.getElementById('calc-weight').value)||0;
-  const result = document.getElementById('calc-result');
-  if(!weight){ result.textContent='請輸入重量'; return; }
-
-  let fee=0, note='';
-  if(method==='cvs'){
-    if(weight>5){ result.innerHTML='<span style="color:#e05050">❌ 超商不支援 5kg 以上，請改用黑貓宅配</span>'; return; }
-    fee=60; note='全家/7-11/萊爾富均適用';
-  } else if(method==='blackcat'){
-    if(weight<=1) fee=130;
-    else if(weight<=5) fee=170;
-    else fee=210;
-    note=weight>5?'依尺寸加收，上限 20kg':'';
-  } else if(method==='local'){
-    fee=0; note='限店址周邊 1 公里內或消費滿額';
-  }
-  result.innerHTML=`<strong style="color:var(--bark);font-size:.9rem">運費：NT$ ${fee}</strong>${note?'<span style="color:var(--mid);font-size:.68rem;margin-left:8px">'+note+'</span>':''}`;
-}
-
-function openShippingEdit(){
-  document.getElementById('shipping-free-threshold').value = shippingConfig.freeThreshold;
-  const list = document.getElementById('shipping-method-edit-list');
-  list.innerHTML = shippingConfig.methods.map((m,i) => `
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-      <span style="font-size:.75rem;color:var(--ink);width:140px;font-family:'Noto Sans TC',sans-serif">${m.name}</span>
-      <span style="font-size:.72rem;color:var(--mid)">NT$</span>
-      <input type="number" id="sfee-${i}" value="${m.fee}" min="0" class="disc-input" style="width:80px">
-    </div>
-  `).join('');
-}
-
-function saveShippingConfig(){
-  shippingConfig.freeThreshold = parseInt(document.getElementById('shipping-free-threshold').value)||0;
-  shippingConfig.methods = shippingConfig.methods.map((m,i) => ({
-    ...m,
-    fee: parseInt(document.getElementById('sfee-'+i).value)||0
-  }));
-  closeModal('shipping-edit');
-  showToast('✓ 運費設定已儲存');
-  if(typeof saveShopSettings==='function')saveShopSettings();
-}
-function renderGiftEditList(){document.getElementById('gift-edit-list').innerHTML=giftRules.map((r,i)=>`<div class="gift-edit-item"><span style="font-size:.7rem;color:var(--mid);white-space:nowrap">滿NT$</span><input class="gift-edit-input" type="number" value="${r.threshold}" id="gt-${i}" placeholder="門檻金額" style="width:80px"><span style="font-size:.7rem;color:var(--mid);white-space:nowrap">贈</span><input class="gift-edit-input" type="text" value="${r.name}" id="gn-${i}" placeholder="贈品名稱"><button class="gift-edit-rm" onclick="removeGift(${i})">✕</button></div>`).join('');}
-function addGiftOption(){giftRules.push({threshold:0,name:'新贈品（請修改）'});renderGiftEditList();}
-function removeGift(i){giftRules.splice(i,1);renderGiftEditList();}
-function saveGifts(){giftRules=giftRules.map((_,i)=>({threshold:parseInt(document.getElementById('gt-'+i).value)||0,name:document.getElementById('gn-'+i).value.trim()})).filter(r=>r.threshold>0&&r.name);updateCart();closeModal('gift-edit');showToast('✓ 贈品設定已儲存');if(typeof saveShopSettings==='function')saveShopSettings();}
+function saveDiscounts(){discountRules=discountRules.map((_,i)=>({threshold:parseInt(document.getElementById(`dt-${i}`).value)||0,discount:parseInt(document.getElementById(`dd-${i}`).value)||0})).filter(r=>r.threshold>0&&r.discount>0);updateCart();closeModal('discount-edit');showToast('✓ 折扣設定已儲存');}
+function renderGiftSelect(){const sel=document.getElementById('gift-choice');sel.innerHTML='<option value="">— 選擇贈品 —</option>'+giftOptions.map(g=>`<option>${g}</option>`).join('');}
+function renderGiftEditList(){document.getElementById('gift-edit-list').innerHTML=giftOptions.map((g,i)=>`<div class="gift-edit-item"><input class="gift-edit-input" type="text" value="${g}" id="go-${i}"><button class="gift-edit-rm" onclick="removeGift(${i})">✕</button></div>`).join('');}
+function addGiftOption(){giftOptions.push('新贈品（點此修改）');renderGiftEditList();}
+function removeGift(i){giftOptions.splice(i,1);renderGiftEditList();}
+function saveGifts(){giftOptions=Array.from(document.querySelectorAll('[id^="go-"]')).map(x=>x.value.trim()).filter(Boolean);renderGiftSelect();closeModal('gift-edit');showToast('✓ 贈品設定已儲存');}
 function switchPage(idx){document.querySelectorAll('.shop-page').forEach((p,i)=>p.classList.toggle('active',i===idx));document.querySelectorAll('.page-tab').forEach((t,i)=>t.classList.toggle('active',i===idx));}
 function scrollToProducts(){document.getElementById('products').scrollIntoView({behavior:'smooth'});}
-function openModal(t){if(t==='gift-edit')renderGiftEditList();if(t==='discount-edit')renderDiscountEditList();if(t==='shipping-edit')openShippingEdit();document.getElementById(`modal-${t}`).classList.add('on');}
+function openModal(t){if(t==='gift-edit')renderGiftEditList();document.getElementById(`modal-${t}`).classList.add('on');}
 function closeModal(t){document.getElementById(`modal-${t}`).classList.remove('on');}
 function toggleCart(){document.getElementById('overlay').classList.toggle('on');document.getElementById('sidebar').classList.toggle('on');}
 function submitForm(t){document.getElementById(`modal-${t}-body`).style.display='none';document.getElementById(`${t}-success`).style.display='block';setTimeout(()=>closeModal(t),2600);setTimeout(()=>{document.getElementById(`modal-${t}-body`).style.display='block';document.getElementById(`${t}-success`).style.display='none';},3200);}
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
 document.querySelectorAll('.modal-wrap').forEach(w=>w.addEventListener('click',e=>{if(e.target===w)w.classList.remove('on');}));
 function generateOrderNum(){const d=new Date(),ymd=d.getFullYear().toString().slice(2)+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0');return'UNI-'+ymd+'-'+(Math.floor(Math.random()*9000)+1000);}
-function openOrderModal(){if(!cart.length)return;
-  // 顯示 Step1，隱藏 Step2
-  document.getElementById('order-step1').style.display='block';
-  document.getElementById('order-step2').style.display='none';
-
-  // 初始化運費選單
-  const sel=document.getElementById('shipping-method');
-  sel.innerHTML=shippingConfig.methods.map(m=>`<option value="${m.id}">${m.name}　NT$${m.fee}</option>`).join('');
-
-  const subtotal=cart.reduce((s,x)=>s+x.price*x.qty,0);
-  const prodDiscounts=cart.reduce((s,x)=>s+calcProdDiscount(x),0);
-  const{matched}=calcDiscount(subtotal);
-  const orderDiscount=matched?matched.discount:0;
-  const totalDiscount=prodDiscounts+orderDiscount;
-  const afterDiscount=subtotal-totalDiscount;
-
-  // 顯示商品預覽
-  let previewHtml=cart.map(x=>`<div class="order-item-row"><div><span class="order-item-name">${x.name}</span><span class="order-item-qty">×${x.qty}</span></div><div class="order-item-price">NT$ ${(x.price*x.qty).toLocaleString()}</div></div>`).join('');
-  document.getElementById('order-items-preview').innerHTML=previewHtml;
-
-  document.getElementById('step1-subtotal').textContent='NT$ '+subtotal.toLocaleString();
-  if(totalDiscount>0){
-    document.getElementById('step1-discount-row').style.display='flex';
-    document.getElementById('step1-discount').textContent='-NT$ '+totalDiscount.toLocaleString();
-  }
-
-  window._orderSubtotal=subtotal;
-  window._orderDiscount=totalDiscount;
-  window._orderAfterDiscount=afterDiscount;
-  updateShippingFee();
+function openOrderModal(){if(!cart.length)return;currentOrderNum=generateOrderNum();document.getElementById('order-number').textContent=currentOrderNum;const subtotal=cart.reduce((s,x)=>s+x.price*x.qty,0);const prodDiscounts=cart.reduce((s,x)=>s+calcProdDiscount(x),0);const{matched}=calcDiscount(subtotal);const orderDiscount=matched?matched.discount:0;const totalDiscount=prodDiscounts+orderDiscount;const total=subtotal-totalDiscount;let itemsHtml=cart.map(x=>{const d=calcProdDiscount(x);return`<div class="order-item-row"><div><span class="order-item-name">${x.name}</span><span class="order-item-qty">×${x.qty}</span></div><div class="order-item-price">${d>0?`<span style="font-size:.65rem;color:var(--moss);text-decoration:line-through;margin-right:4px">NT$${(x.price*x.qty).toLocaleString()}</span>NT$ ${(x.price*x.qty-d).toLocaleString()}`:`NT$ ${(x.price*x.qty).toLocaleString()}`}</div></div>`;}).join('');if(orderDiscount>0){itemsHtml+=`<div class="order-item-row"><div><span class="order-item-name" style="color:var(--moss)">🎉 滿額折扣</span></div><div class="order-item-price" style="color:var(--moss)">-NT$ ${orderDiscount.toLocaleString()}</div></div>`;}itemsHtml+=`<div class="order-total-row"><span class="order-total-lbl">結帳金額</span><span class="order-total-val">NT$ ${total.toLocaleString()}</span></div>`;document.getElementById('order-items').innerHTML=itemsHtml;const giftVal=document.getElementById('gift-choice').value;const giftRow=document.getElementById('order-gift-row');if(giftVal){giftRow.style.display='block';giftRow.innerHTML='🎁 兌換贈品：'+giftVal+'<br><span style="font-size:.68rem;opacity:.8">來店出示訂單編號即可兌換</span>';}else{giftRow.style.display='none';}
+  // 同時寫入 GAS（Google Sheets）和 Firestore
+  const itemsText=cart.map(x=>`${x.name}×${x.qty}`).join('、');
+  submitOrderToSheet(currentOrderNum,total,itemsText,giftVal);
+  if(typeof saveOrderToFirestore==='function') saveOrderToFirestore(currentOrderNum,total,itemsText,giftVal);
   document.getElementById('order-modal-wrap').classList.add('on');
 }
+function submitOrderToSheet(orderNum,total,items,gift){
+  // 取得顧客資訊
+  const lineName = window._lineUser ? window._lineUser.displayName : '未登入';
+  const lineUid  = window._lineUser ? ('line_' + window._lineUser.userId) : '';
+  const phone    = document.getElementById('inp-phone') ? document.getElementById('inp-phone').value.trim() : '';
+  const shipping = document.querySelector('input[name="shipping"]:checked') ? document.querySelector('input[name="shipping"]:checked').value : '';
+  const address  = document.getElementById('inp-address') ? document.getElementById('inp-address').value.trim() : '';
+  const note     = document.getElementById('inp-note')    ? document.getElementById('inp-note').value.trim()    : '';
+  const payMethod = window._currentPayMethod || 'jko';
+  // 判斷是否為服務券
+  const isVoucher = items.includes('服務券') || items.includes('套餐');
 
-function updateShippingFee(){
-  const sel=document.getElementById('shipping-method');
-  const methodId=sel.value;
-  const method=shippingConfig.methods.find(m=>m.id===methodId);
-  const afterDiscount=window._orderAfterDiscount||0;
-  const subtotal=window._orderSubtotal||0;
-
-  // 地址欄位顯示控制
-  const addrWrap=document.getElementById('order-address-wrap');
-  const addrLabel=document.getElementById('order-address-label');
-  if(methodId==='pickup'){
-    addrWrap.style.display='none';
-  } else if(methodId==='cvs'){
-    addrWrap.style.display='block';
-    addrLabel.textContent='🏪 超商門市（請填門市名稱及地址）';
-    document.getElementById('order-address').placeholder='例：全家 台北信義店';
-  } else {
-    addrWrap.style.display='block';
-    addrLabel.textContent='📍 配送地址';
-    document.getElementById('order-address').placeholder='請輸入完整地址';
-  }
-
-  let fee=method?method.fee:0;
-  // 滿額免運
-  const isFree=afterDiscount>=shippingConfig.freeThreshold && methodId!=='pickup';
-  if(isFree) fee=0;
-
-  const hint=document.getElementById('shipping-fee-hint');
-  if(isFree && methodId!=='pickup'){
-    hint.textContent='🎉 滿NT$'+shippingConfig.freeThreshold.toLocaleString()+' 免運費！';
-    hint.style.color='var(--moss)';
-  } else if(methodId==='pickup'){
-    hint.textContent='到店取貨免運費';
-    hint.style.color='var(--moss)';
-  } else {
-    const diff=shippingConfig.freeThreshold-afterDiscount;
-    hint.textContent='再消費NT$'+diff.toLocaleString()+' 即可免運';
-    hint.style.color='var(--mid)';
-  }
-
-  window._shippingFee=fee;
-  const total=afterDiscount+fee;
-  document.getElementById('step1-shipping').textContent=fee===0?'免運':'NT$ '+fee;
-  document.getElementById('step1-total').textContent='NT$ '+total.toLocaleString();
-}
-
-function submitOrderStep1(){
-  const phone=document.getElementById('order-phone').value.trim();
-  if(!phone){showToast('請填寫聯絡電話');return;}
-  const methodId=document.getElementById('shipping-method').value;
-  const method=shippingConfig.methods.find(m=>m.id===methodId);
-  const address=document.getElementById('order-address').value.trim();
-  if(methodId!=='pickup'&&!address){showToast('請填寫地址或門市');return;}
-  const note=document.getElementById('order-note').value.trim();
-  const lineName=sessionStorage.getItem('line_name')||'未登入';
-
-  currentOrderNum=generateOrderNum();
-  document.getElementById('order-number').textContent=currentOrderNum;
-
-  const subtotal=window._orderSubtotal||0;
-  const discount=window._orderDiscount||0;
-  const afterDiscount=window._orderAfterDiscount||0;
-  const fee=window._shippingFee||0;
-  const total=afterDiscount+fee;
-
-  // 顯示 Step2
-  let itemsHtml=cart.map(x=>{const d=calcProdDiscount(x);return`<div class="order-item-row"><div><span class="order-item-name">${x.name}</span><span class="order-item-qty">×${x.qty}</span></div><div class="order-item-price">NT$ ${(x.price*x.qty).toLocaleString()}</div></div>`;}).join('');
-  if(discount>0) itemsHtml+=`<div class="order-item-row"><div><span class="order-item-name" style="color:var(--moss)">🎉 折扣</span></div><div class="order-item-price" style="color:var(--moss)">-NT$ ${discount.toLocaleString()}</div></div>`;
-  if(fee>0) itemsHtml+=`<div class="order-item-row"><div><span class="order-item-name">🚚 運費（${method.name}）</span></div><div class="order-item-price">NT$ ${fee}</div></div>`;
-  itemsHtml+=`<div class="order-total-row"><span class="order-total-lbl">總計</span><span class="order-total-val">NT$ ${total.toLocaleString()}</span></div>`;
-  document.getElementById('order-items').innerHTML=itemsHtml;
-
-  // 配送資訊
-  document.getElementById('order-shipping-info').innerHTML=
-    `📱 電話：${phone}<br>`+
-    `🚚 配送：${method.name}`+(address?`<br>📍 ${address}`:'')+
-    (note?`<br>📝 備註：${note}`:'');
-
-  document.getElementById('order-step1').style.display='none';
-  document.getElementById('order-step2').style.display='block';
-
-  // 送出資料
-  const itemsText=cart.map(x=>`${x.name}×${x.qty}`).join('、');
-  const giftVal=calcAutoGift(afterDiscount)||'';
-  submitOrderToSheet(currentOrderNum,total,itemsText,giftVal,lineName,phone,method.name,address,note);
-  if(typeof saveOrderToFirestore==='function') saveOrderToFirestore(currentOrderNum,total,itemsText,giftVal);
-}
-function submitOrderToSheet(orderNum,total,items,gift,lineName,phone,shipping,address,note){
-  const time=new Date().toLocaleString('zh-TW',{timeZone:'Asia/Taipei'});
-  const params=new URLSearchParams({
-    orderNum,time,items,total,
-    gift:gift||'無',
-    lineName:lineName||'未登入',
-    phone:phone||'',
-    shipping:shipping||'',
-    address:address||'',
-    note:note||''
-  });
-  fetch(GAS_URL+'?'+params.toString(),{method:'GET',mode:'no-cors'}).catch(()=>{});
+  fetch(GAS_URL, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({
+      orderNum,
+      time: new Date().toLocaleString('zh-TW',{timeZone:'Asia/Taipei'}),
+      items, total, gift: gift||'無',
+      lineName, lineUid, phone, shipping, address, note,
+      payMethod: payMethod==='jko'?'街口':payMethod==='ipass'?'iPASS':'轉帳',
+      isVoucher: String(isVoucher)
+    })
+  }).catch(()=>{});
 }
 function closeOrderModal(){document.getElementById('order-modal-wrap').classList.remove('on');}
-function goToPayment(){window.open(JKO_PAY_URL,'_blank');}
+async function goToPayment(method) {
+  // 黑名單檢查
+  const phone = document.getElementById('inp-phone') ? document.getElementById('inp-phone').value.trim() : '';
+  if (phone) {
+    try {
+      const blRes = await fetch(GAS_URL, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ action:'checkBlacklist', phone })
+      });
+      const blData = await blRes.json();
+      if (blData.blacklisted) {
+        alert('很抱歉，此電話無法完成結帳，請聯繫 Elsa。');
+        return;
+      }
+    } catch(_) {}
+  }
+
+  const payMethod = method || 'jko';
+  // 更新訂單付款方式
+  window._currentPayMethod = payMethod;
+
+  if (payMethod === 'jko') {
+    window.open(JKO_PAY_URL, '_blank');
+  } else if (payMethod === 'ipass') {
+    // 從 GAS 取 iPASS 連結
+    try {
+      const res  = await fetch(GAS_URL + '?action=getBankInfo');
+      const data = await res.json();
+      window.open(data.ipass || 'https://www.ipass.com.tw/', '_blank');
+    } catch(_) { window.open('https://www.ipass.com.tw/', '_blank'); }
+  } else if (payMethod === 'transfer') {
+    showTransferInfo();
+  }
+}
+
+async function showTransferInfo() {
+  const el = document.getElementById('transfer-info');
+  if (!el) return;
+  try {
+    const res  = await fetch(GAS_URL + '?action=getBankInfo');
+    const data = await res.json();
+    el.innerHTML = '🏦 轉帳資訊<br><strong style="font-size:15px">' + (data.account||'請聯繫 Elsa') + '</strong><br><span style="color:#888;font-size:11px">轉帳後請截圖傳給 Elsa 確認</span>';
+  } catch(_) {
+    el.innerHTML = '🏦 請聯繫 Elsa 取得轉帳帳號';
+  }
+  el.style.display = 'block';
+}
 document.addEventListener('DOMContentLoaded',()=>{document.getElementById('order-modal-wrap').addEventListener('click',e=>{if(e.target===document.getElementById('order-modal-wrap'))closeOrderModal();});});
 
 // 影音區塊
@@ -1316,12 +884,6 @@ function setVideo(vid){const url=document.getElementById(`vurl-${vid}`).value.tr
 function saveVideo(vid,key,val){const idx=videos.findIndex(v=>v.id===vid);videos[idx][key]=val.trim();}
 
 initProducts();renderPages();renderGiftSelect();renderVideos();
-// 延遲載入 Firestore 商品（確保頁面已渲染）
-setTimeout(async ()=>{
-  if(typeof loadProductsFromFirestore==='function'){
-    await loadProductsFromFirestore();
-  }
-}, 800);
 </script>
 </body>
 </html>
