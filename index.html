@@ -559,6 +559,7 @@ footer{background:var(--bark);color:rgba(255,255,255,.45);text-align:center;padd
 <div class="edit-bar" id="edit-bar" style="display:none">
   <span>✏️ 店家模式：點商品卡片可編輯並儲存到 Sheet</span>
   <div class="edit-bar-actions">
+    <button class="edit-bar-btn" onclick="openModal('sample-edit')">🫧 體驗包</button>
     <button class="edit-bar-btn" onclick="openModal('gift-edit')">⚙️ 贈品</button>
     <button class="edit-bar-btn" onclick="openModal('discount-edit')">💰 折扣</button>
   </div>
@@ -829,13 +830,31 @@ footer{background:var(--bark);color:rgba(255,255,255,.45);text-align:center;padd
     <div class="modal-body" id="modal-sample-body">
       <div class="form-group"><label class="form-label">您的姓名</label><input class="form-input" type="text" placeholder="請輸入姓名"></div>
       <div class="form-group"><label class="form-label">聯絡電話</label><input class="form-input" type="tel" placeholder="請輸入手機號碼"></div>
-      <div class="form-group"><label class="form-label">想試用的系列</label><select class="form-select"><option value="">— 請選擇 —</option><option>CACLEE 精油系列（洗髮）</option><option>香氛香水髮膜系列（修護）</option><option>兩種都想試試</option></select></div>
+      <div class="form-group">
+        <label class="form-label">想試用的系列</label>
+        <select class="form-select" id="sample-series-select">
+          <option value="">— 請選擇 —</option>
+        </select>
+      </div>
       <div class="form-group"><label class="form-label">您目前的髮質狀況</label><select class="form-select"><option value="">— 請選擇 —</option><option>頭皮出油 / 頭皮問題</option><option>髮絲乾燥受損</option><option>染燙後需修護</option><option>一般正常髮質</option></select></div>
       <div class="form-group"><label class="form-label">領取方式</label><select class="form-select"><option>來店領取</option><option>寄送到府（請備註地址）</option></select></div>
       <div class="form-group"><label class="form-label">備註</label><textarea class="form-textarea" placeholder="地址或其他說明（選填）"></textarea></div>
       <button class="form-submit" style="width:100%;padding:11px;background:var(--bark);color:#fff;border:none;border-radius:3px;font-family:'Noto Serif TC',serif;font-size:.82rem;cursor:pointer;" onclick="submitForm('sample')">送出申請</button>
     </div>
     <div class="success-msg" id="sample-success"><div class="s-icon">🫧</div><h4>已收到您的申請！</h4><p>我們會為您準備體驗包，並盡快與您確認 🌿</p></div>
+  </div>
+</div>
+
+<!-- 後台：編輯體驗包系列 -->
+<div class="modal-wrap" id="modal-sample-edit">
+  <div class="modal">
+    <div class="modal-head"><h3>🫧 編輯體驗包系列選項</h3><button class="modal-close" onclick="closeModal('sample-edit')">✕</button></div>
+    <div class="modal-body">
+      <p style="font-size:.72rem;color:var(--mid);font-family:'Noto Sans TC',sans-serif;margin-bottom:12px;line-height:1.6">新增或修改「索取體驗包」表單中的系列選項</p>
+      <div class="gift-edit-list" id="sample-series-edit-list"></div>
+      <button class="add-item-btn" onclick="addSampleSeries()">＋ 新增系列</button>
+      <button style="width:100%;padding:11px;background:var(--bark);color:#fff;border:none;border-radius:3px;font-family:'Noto Serif TC',serif;font-size:.82rem;cursor:pointer;" onclick="saveSampleSeries()">儲存系列選項</button>
+    </div>
   </div>
 </div>
 
@@ -894,14 +913,11 @@ footer{background:var(--bark);color:rgba(255,255,255,.45);text-align:center;padd
     <div class="modal-body">
       <img id="edit-img-preview" class="edit-img-preview" src="" alt="">
       <div class="edit-img-ph" onclick="document.getElementById('edit-img-file').click()">
-        📷 點擊上傳圖片（或貼入圖片 URL）
+        📷 點擊上傳圖片（自動上傳到 Imgur）
       </div>
       <input type="file" id="edit-img-file" accept="image/*" style="display:none" onchange="handleEditImgFile(event)">
       <input type="hidden" id="edit-prod-id">
-      <div class="form-group">
-        <label class="form-label">圖片 URL（可選，優先使用上傳）</label>
-        <input class="form-input" type="url" id="edit-img-url" placeholder="https://..." oninput="previewEditImg()">
-      </div>
+      <input type="hidden" id="edit-img-url">
       <div class="edit-form-row">
         <div class="form-group">
           <label class="form-label">頁面（0~4）</label>
@@ -1253,30 +1269,30 @@ async function saveProdToSheet(){
     const prodId = document.getElementById('edit-prod-id').value.trim();
     let imgUrl   = document.getElementById('edit-img-url').value.trim();
 
-    // ── 如果有 base64 圖片，先 POST 上傳到 GAS → Google Drive ──
+    // ── 如果有 base64 圖片，上傳到 Imgur（免費，無 CORS 問題）──
     if(editImgBase64 && editImgBase64.startsWith('data:')){
       btn.textContent='上傳圖片中…';
       try{
-        // 拆出 mimeType 和純 base64
-        const match    = editImgBase64.match(/^data:([^;]+);base64,(.+)$/);
-        const mimeType = match ? match[1] : 'image/jpeg';
-        const b64data  = match ? match[2] : editImgBase64;
-        const ext      = mimeType.split('/')[1] || 'jpg';
-        const filename = 'prod_' + Date.now() + '.' + ext;
-
-        const upRes  = await fetch(GAS_URL, {
-          method:  'POST',
-          headers: {'Content-Type':'application/json'},
-          body:    JSON.stringify({ action:'uploadImage', base64: b64data, mimeType, filename })
-        });
-        const upData = await upRes.json();
-        if(upData.ok && upData.url){
-          imgUrl = upData.url;
-          // 更新預覽欄位顯示
-          document.getElementById('edit-img-url').value = imgUrl;
-          showToast('✓ 圖片已上傳');
-        } else {
-          showToast('⚠️ 圖片上傳失敗，改用 URL：'+(upData.msg||''));
+        const match   = editImgBase64.match(/^data:[^;]+;base64,(.+)$/);
+        const b64data = match ? match[2] : '';
+        if(b64data){
+          // Imgur 匿名上傳（Client-ID 為公開免費額度）
+          const upRes = await fetch('https://api.imgur.com/3/image', {
+            method:  'POST',
+            headers: {
+              'Authorization': 'Client-ID 546c25a59c58ad7',  // 公開匿名 Client-ID
+              'Content-Type':  'application/json'
+            },
+            body: JSON.stringify({ image: b64data, type: 'base64' })
+          });
+          const upData = await upRes.json();
+          if(upData.success && upData.data && upData.data.link){
+            imgUrl = upData.data.link;
+            document.getElementById('edit-img-url').value = imgUrl;
+            showToast('✓ 圖片已上傳');
+          } else {
+            showToast('⚠️ Imgur 上傳失敗，請改填圖片 URL');
+          }
         }
       } catch(upErr){
         showToast('⚠️ 圖片上傳錯誤：'+upErr.message);
@@ -1307,7 +1323,7 @@ async function saveProdToSheet(){
     const data = await res.json();
     if(data.ok){
       showToast('✓ 商品已儲存到 Sheet');
-      editImgBase64 = ''; // 清空暫存
+      editImgBase64 = '';
       closeModal('prod-edit');
       loadAndRenderProducts();
     } else {
@@ -1589,7 +1605,12 @@ function saveDiscounts(){ discountRules=discountRules.map((_,i)=>({threshold:par
 // ══════════════════════════════════════════════
 // Modal & Toast
 // ══════════════════════════════════════════════
-function openModal(t){ if(t==='gift-edit') renderGiftEditList(); if(t==='discount-edit') renderDiscountEditList(); document.getElementById(`modal-${t}`).classList.add('on'); }
+function openModal(t){
+  if(t==='gift-edit') renderGiftEditList();
+  if(t==='discount-edit') renderDiscountEditList();
+  if(t==='sample-edit') renderSampleSeriesEditList();
+  document.getElementById(`modal-${t}`).classList.add('on');
+}
 function closeModal(t){ document.getElementById(`modal-${t}`).classList.remove('on'); }
 function showToast(msg){ const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200); }
 function submitForm(t){ document.getElementById(`modal-${t}-body`).style.display='none'; document.getElementById(`${t}-success`).style.display='block'; setTimeout(()=>closeModal(t),2600); setTimeout(()=>{document.getElementById(`modal-${t}-body`).style.display='block';document.getElementById(`${t}-success`).style.display='none';},3200); }
@@ -1599,36 +1620,144 @@ document.querySelectorAll('.modal-wrap').forEach(w=>w.addEventListener('click',e
 document.getElementById('order-modal-wrap').addEventListener('click',e=>{ if(e.target===document.getElementById('order-modal-wrap')) closeOrderModal(); });
 
 // ══════════════════════════════════════════════
-// 影音區塊
+// 影音區塊 — 上傳圖片 + 標題，存到 GAS Sheet
 // ══════════════════════════════════════════════
-const videos=[
-  {id:'v0',title:'熱門商品介紹 01',desc:'點擊右下角換影片按鈕，貼上 YouTube 連結',url:''},
-  {id:'v1',title:'熱門商品介紹 02',desc:'點擊右下角換影片按鈕，貼上 YouTube 連結',url:''},
-  {id:'v2',title:'熱門商品介紹 03',desc:'點擊右下角換影片按鈕，貼上 YouTube 連結',url:''},
-  {id:'v3',title:'熱門商品介紹 04',desc:'點擊右下角換影片按鈕，貼上 YouTube 連結',url:''},
+let videoCards = [
+  {id:'v0', title:'熱門商品介紹 01', imgUrl:'', link:''},
+  {id:'v1', title:'熱門商品介紹 02', imgUrl:'', link:''},
+  {id:'v2', title:'熱門商品介紹 03', imgUrl:'', link:''},
+  {id:'v3', title:'熱門商品介紹 04', imgUrl:'', link:''},
 ];
-function getYouTubeId(url){const m=url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([^&?\/\s]{11})/);return m?m[1]:null;}
+
+// 載入影音資料
+async function loadVideos(){
+  try{
+    const res  = await fetch(GAS_URL+'?action=getVideos');
+    const data = await res.json();
+    if(data.ok && data.videos && data.videos.length){
+      videoCards = data.videos;
+    }
+  }catch(_){}
+  renderVideos();
+}
+
 function renderVideos(){
-  const g=document.getElementById('video-grid');
+  const g = document.getElementById('video-grid');
   if(!g) return;
-  g.innerHTML='';
-  videos.forEach(v=>{
-    const card=document.createElement('div');card.className='video-card';
-    const frameHtml=v.url&&getYouTubeId(v.url)
-      ?`<iframe src="https://www.youtube.com/embed/${getYouTubeId(v.url)}" allowfullscreen></iframe>`
-      :`<div class="video-ph" onclick="showVideoInput('${v.id}')"><span class="video-ph-icon">▶</span><span class="video-ph-txt">點擊貼上 YouTube 連結</span><span class="video-ph-hint">支援一般影片 / Shorts</span></div>`;
-    card.innerHTML=`<div class="video-frame-wrap">${frameHtml}<div class="video-url-input" id="vi-${v.id}"><input type="text" id="vurl-${v.id}" placeholder="貼上 YouTube 網址..."><button onclick="setVideo('${v.id}')">確認</button></div></div><div class="video-info"><div class="video-title">${v.title}</div><div class="video-desc">${v.desc}</div><button class="video-edit-btn" onclick="showVideoInput('${v.id}')">🔗 換影片連結</button></div>`;
+  const isOwner = document.body.classList.contains('owner-mode');
+  g.innerHTML = '';
+  videoCards.forEach((v,idx) => {
+    const card = document.createElement('div');
+    card.className = 'video-card';
+    const imgHtml = v.imgUrl
+      ? `<img src="${v.imgUrl}" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'">`
+      : `<div class="video-ph"><span class="video-ph-icon">▶</span><span class="video-ph-txt">${isOwner?'點擊上傳封面圖':'敬請期待'}</span></div>`;
+    // 連結按鈕（有連結時顯示）
+    const linkHtml = v.link
+      ? `<a href="${v.link}" target="_blank" style="display:inline-block;margin-top:4px;font-size:.6rem;color:var(--rose);text-decoration:none;font-family:'Noto Sans TC',sans-serif">▶ 觀看影片</a>`
+      : '';
+    // 店家編輯按鈕
+    const editHtml = isOwner
+      ? `<div style="margin-top:8px;display:flex;flex-direction:column;gap:5px;">
+           <button class="video-edit-btn" onclick="triggerVideoImg(${idx})">📷 更換封面圖</button>
+           <input type="text" value="${v.title}" placeholder="影片標題" style="width:100%;padding:5px 8px;border:1.5px solid var(--border);border-radius:3px;font-size:.72rem;font-family:'Noto Serif TC',serif;outline:none;" onchange="updateVideoField(${idx},'title',this.value)">
+           <input type="url" value="${v.link||''}" placeholder="影片連結（選填）" style="width:100%;padding:5px 8px;border:1.5px solid var(--border);border-radius:3px;font-size:.72rem;font-family:'Noto Sans TC',sans-serif;outline:none;" onchange="updateVideoField(${idx},'link',this.value)">
+           <button class="video-edit-btn" style="background:var(--bark);color:#fff;padding:5px 10px;border-radius:3px;border:none;cursor:pointer;" onclick="saveVideo(${idx})">💾 儲存</button>
+         </div>`
+      : '';
+    card.innerHTML = `
+      <div class="video-frame-wrap" style="cursor:${isOwner?'pointer':'default'}" onclick="${isOwner?`triggerVideoImg(${idx})`:''}">
+        ${imgHtml}
+      </div>
+      <input type="file" accept="image/*" style="display:none" id="vimg-file-${idx}" onchange="handleVideoImg(event,${idx})">
+      <div class="video-info">
+        <div class="video-title">${v.title}</div>
+        ${linkHtml}
+        ${editHtml}
+      </div>`;
     g.appendChild(card);
   });
 }
-function showVideoInput(vid){const wrap=document.getElementById(`vi-${vid}`);wrap.classList.toggle('show');if(wrap.classList.contains('show'))document.getElementById(`vurl-${vid}`).focus();}
-function setVideo(vid){const url=document.getElementById(`vurl-${vid}`).value.trim();const idx=videos.findIndex(v=>v.id===vid);if(!url)return;if(!getYouTubeId(url)){showToast('❌ 請輸入有效的 YouTube 連結');return;}videos[idx].url=url;renderVideos();showToast('✓ 影片已更新');}
+
+function triggerVideoImg(idx){
+  if(!document.body.classList.contains('owner-mode')) return;
+  document.getElementById(`vimg-file-${idx}`).click();
+}
+
+function handleVideoImg(e, idx){
+  const file = e.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = async ev => {
+    showToast('上傳圖片中…');
+    try{
+      const match   = ev.target.result.match(/^data:[^;]+;base64,(.+)$/);
+      const b64data = match ? match[2] : '';
+      const upRes   = await fetch('https://api.imgur.com/3/image',{
+        method:'POST',
+        headers:{'Authorization':'Client-ID 546c25a59c58ad7','Content-Type':'application/json'},
+        body: JSON.stringify({image: b64data, type:'base64'})
+      });
+      const upData = await upRes.json();
+      if(upData.success && upData.data && upData.data.link){
+        videoCards[idx].imgUrl = upData.data.link;
+        showToast('✓ 封面圖已上傳');
+        renderVideos();
+      } else { showToast('⚠️ 圖片上傳失敗'); }
+    }catch(err){ showToast('⚠️ 上傳錯誤：'+err.message); }
+  };
+  reader.readAsDataURL(file);
+}
+
+function updateVideoField(idx, key, val){
+  videoCards[idx][key] = val.trim();
+}
+
+async function saveVideo(idx){
+  const v = videoCards[idx];
+  try{
+    const params = new URLSearchParams({
+      action:'saveVideo', id:v.id, title:v.title, imgUrl:v.imgUrl||'', link:v.link||''
+    });
+    const res  = await fetch(GAS_URL+'?'+params.toString());
+    const data = await res.json();
+    if(data.ok){ showToast('✓ 影音已儲存'); renderVideos(); }
+    else { showToast('❌ 儲存失敗：'+(data.msg||'')); }
+  }catch(err){ showToast('❌ 網路錯誤：'+err.message); }
+}
+
+// ══════════════════════════════════════════════
+// 體驗包系列選項（後台可編輯）
+// ══════════════════════════════════════════════
+let sampleSeriesOptions = [
+  'CACLEE 精油系列（洗髮）',
+  '香氛香水髮膜系列（修護）',
+  '兩種都想試試'
+];
+function renderSampleSeriesSelect(){
+  const sel = document.getElementById('sample-series-select');
+  if(!sel) return;
+  sel.innerHTML = '<option value="">— 請選擇 —</option>' +
+    sampleSeriesOptions.map(s=>`<option>${s}</option>`).join('');
+}
+function renderSampleSeriesEditList(){
+  document.getElementById('sample-series-edit-list').innerHTML =
+    sampleSeriesOptions.map((s,i)=>`<div class="gift-edit-item"><input class="gift-edit-input" type="text" value="${s}" id="ss-${i}"><button class="edit-rm-btn" onclick="removeSampleSeries(${i})">✕</button></div>`).join('');
+}
+function addSampleSeries(){ sampleSeriesOptions.push('新系列（點此修改）'); renderSampleSeriesEditList(); }
+function removeSampleSeries(i){ sampleSeriesOptions.splice(i,1); renderSampleSeriesEditList(); }
+function saveSampleSeries(){
+  sampleSeriesOptions = Array.from(document.querySelectorAll('[id^="ss-"]')).map(x=>x.value.trim()).filter(Boolean);
+  renderSampleSeriesSelect();
+  closeModal('sample-edit');
+  showToast('✓ 體驗包系列已更新');
+}
 
 // ══════════════════════════════════════════════
 // 初始化
 // ══════════════════════════════════════════════
 updateCart();
-renderVideos();
+renderSampleSeriesSelect();
+loadVideos();
 </script>
 </body>
 </html>
