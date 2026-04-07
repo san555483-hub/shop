@@ -131,6 +131,10 @@ header{background:var(--bark);position:sticky;top:0;z-index:200;box-shadow:0 2px
 .step-header p{color:var(--mid);font-size:.76rem;margin-top:8px;line-height:1.65;font-family:'Noto Sans TC',sans-serif;}
 
 .cat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
+/* 首頁商品直覽分類Tab */
+.home-cat-tab{padding:8px 18px;border:1.5px solid var(--border);border-radius:20px;font-size:.75rem;font-family:'Noto Sans TC',sans-serif;background:#fff;color:var(--mid);cursor:pointer;white-space:nowrap;transition:all .2s;flex-shrink:0;}
+.home-cat-tab.active,.home-cat-tab:hover{background:var(--bark);color:#fff;border-color:var(--bark);}
+#home-cat-tabs::-webkit-scrollbar{display:none;}
 @media(min-width:500px){.cat-grid{grid-template-columns:repeat(3,1fr);}}
 .cat-card{background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:22px 12px;text-align:center;cursor:pointer;transition:all .28s;position:relative;overflow:hidden;}
 .cat-card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,var(--gold-lt),transparent);opacity:0;transition:opacity .3s;}
@@ -538,6 +542,8 @@ footer{background:var(--bark);color:rgba(255,255,255,.45);text-align:center;padd
 
   window.addEventListener('DOMContentLoaded',()=>{
     handleLineCallback();
+    // 首頁商品直覽初始載入
+    setTimeout(initHomeShop, 300);
     const name=sessionStorage.getItem('line_name'),pic=sessionStorage.getItem('line_pic'),userId=sessionStorage.getItem('line_userId');
     if(name&&userId){window._lineUser={displayName:name,userId,pic:pic||''};renderLineBar({name,pic});}
     else{window._lineUser=null;renderLineBar(null);}
@@ -621,10 +627,10 @@ footer{background:var(--bark);color:rgba(255,255,255,.45);text-align:center;padd
 
   <div class="quick-actions">
     <div class="qa-grid">
-      <div class="qa-card" onclick="goStep(2)">
+      <div class="qa-card" onclick="document.getElementById('home-shop-section').scrollIntoView({behavior:'smooth'})">
         <div class="qa-icon">🛍️</div>
         <div class="qa-title">精選商品選購</div>
-        <div class="qa-sub">加入購物車直接結帳</div>
+        <div class="qa-sub">直接下方選購加入購物車</div>
       </div>
       <div class="qa-card" onclick="openModal('sample')">
         <div class="qa-icon">🫧</div>
@@ -644,6 +650,18 @@ footer{background:var(--bark);color:rgba(255,255,255,.45);text-align:center;padd
     </div>
   </div>
 
+  <!-- ── 商品直覽區（內嵌在首頁） ── -->
+  <div id="home-shop-section" style="max-width:900px;margin:0 auto;padding:8px 16px 24px;">
+    <!-- 分類 Tab -->
+    <div id="home-cat-tabs" style="display:flex;gap:8px;overflow-x:auto;padding:4px 0 12px;scrollbar-width:none;-ms-overflow-style:none;"></div>
+    <!-- 新增商品按鈕（店家模式） -->
+    <div id="home-add-prod-wrap"></div>
+    <!-- 商品格 -->
+    <div id="home-product-wrap">
+      <div class="loading-wrap"><div class="loading-spinner"></div><p style="font-size:.8rem;color:var(--mid);font-family:'Noto Sans TC',sans-serif">載入商品中…</p></div>
+    </div>
+  </div>
+
   <div class="features-section">
     <div class="features-inner">
       <div class="feat-item"><div class="feat-icon">🎁</div><div class="feat-title">購買即回饋購物券</div><div class="feat-text">每筆消費皆可獲得購物券，下次繼續使用</div></div>
@@ -651,13 +669,6 @@ footer{background:var(--bark);color:rgba(255,255,255,.45);text-align:center;padd
       <div class="feat-item"><div class="feat-icon">🌿</div><div class="feat-title">職人一對一推薦</div><div class="feat-text">依您的頭皮與髮質，量身推薦最合適的產品</div></div>
       <div class="feat-item"><div class="feat-icon">📦</div><div class="feat-title">居家沙龍兩相宜</div><div class="feat-text">自備帶回家，或留店施作享優惠價</div></div>
     </div>
-  </div>
-
-  <div class="start-cta">
-    <button class="start-btn" onclick="goStep(2)">
-      開始選購
-      <span class="start-btn-sub">選擇分類 → 加入購物車 → 結帳</span>
-    </button>
   </div>
 
   <!-- 影音區塊 -->
@@ -830,8 +841,10 @@ footer{background:var(--bark);color:rgba(255,255,255,.45);text-align:center;padd
       <div class="cc-head"><h3>💳 選擇付款方式</h3></div>
       <div class="cc-body">
         <p style="font-size:.72rem;color:var(--mid);font-family:'Noto Sans TC',sans-serif;margin-bottom:14px;line-height:1.6">📸 付款完成後，建議截圖保存訂單資訊</p>
-        <div class="pay-btns" id="pay-btns-container">
-          <div style="text-align:center;color:#aaa;font-size:13px;padding:16px;">載入付款方式中…</div>
+        <div class="pay-btns">
+          <button class="pay-btn jko" onclick="goToPayment('jko')">🟡 街口付款</button>
+          <button class="pay-btn ipass" onclick="goToPayment('ipass')">🔵 iPASS 付款</button>
+          <button class="pay-btn transfer" onclick="goToPayment('transfer')">🏦 轉帳付款</button>
         </div>
         <div id="transfer-info-block"></div>
       </div>
@@ -1065,7 +1078,7 @@ footer{background:var(--bark);color:rgba(255,255,255,.45);text-align:center;padd
 <script>
 // ══════ 設定 ══════
 const GAS_URL     = 'https://script.google.com/macros/s/AKfycbwFLBUwkVoxXOccvgUWdsbaMt4TmAorHHIQOEsWlek9rEGi1YzoMnZi2-JnBEOG56xmxw/exec';
-let _payMethodsCache = []; // 動態付款方式快取（由 loadPayMethods 填入）
+const JKO_PAY_URL = 'https://service.jkopay.com/r/transfer?j=Transfer:900666675';
 const GAS_SHOP_URL = GAS_URL; // 購物金用同一條GAS
 
 // 購物金狀態
@@ -1111,6 +1124,7 @@ function goStep(n){
   if(n > maxUnlocked && !document.body.classList.contains('owner-mode')) return;
   if(n < 1 || n > 4) return;
   currentStep = n;
+  if(n === 1) { setTimeout(initHomeShop, 100); }
   if(n > maxUnlocked) maxUnlocked = n;
   // 顯示對應頁面
   document.querySelectorAll('.step-page').forEach(p=>p.classList.remove('active'));
@@ -1135,6 +1149,82 @@ function goStep(n){
 // Step 2：分類選擇
 // ══════════════════════════════════════════════
 let selectedCategory = null;
+
+// ════════════════════════════════════════════════════════════
+// 🏠 首頁商品直覽（一格一格全攤開，分類Tab篩選）
+// ════════════════════════════════════════════════════════════
+let _homeCurPage = -1; // -1 = 全部
+
+async function initHomeShop() {
+  // 商品資料若已載入就直接渲染，否則先撈
+  if (!allProducts.length) {
+    try {
+      const res  = await fetch(`${GAS_URL}?action=getProducts`);
+      const data = await res.json();
+      allProducts = (data.ok && data.products) ? data.products : [];
+    } catch(e) { allProducts = []; }
+  }
+  _homeCurPage = -1;
+  renderHomeCatTabs();
+  renderHomeProducts();
+  renderHomeAddBtn();
+}
+
+function renderHomeCatTabs() {
+  const bar = document.getElementById('home-cat-tabs');
+  if(!bar) return;
+  // 統計各頁商品數
+  const counts = {};
+  allProducts.forEach(p => { const pg=Number(p.page)||0; counts[pg]=(counts[pg]||0)+1; });
+  const total = allProducts.length;
+
+  const tabs = [{ label:'全部商品', idx:-1, count: total }];
+  PAGE_CONFIGS.forEach((cfg, i) => {
+    if(counts[i]) tabs.push({ label: cfg.name, idx: i, count: counts[i] });
+  });
+
+  bar.innerHTML = tabs.map(t =>
+    `<button class="home-cat-tab ${_homeCurPage===t.idx?'active':''}" onclick="switchHomeCat(${t.idx})">${t.label}<span style="font-size:.68rem;opacity:.7;margin-left:4px;">${t.count}</span></button>`
+  ).join('');
+}
+
+function switchHomeCat(idx) {
+  _homeCurPage = idx;
+  document.querySelectorAll('.home-cat-tab').forEach(b => {
+    const i = parseInt(b.getAttribute('onclick').match(/-?\d+/)[0]);
+    b.classList.toggle('active', i === idx);
+  });
+  renderHomeProducts();
+}
+
+function renderHomeProducts() {
+  const wrap = document.getElementById('home-product-wrap');
+  if(!wrap) return;
+
+  const prods = _homeCurPage === -1
+    ? allProducts
+    : allProducts.filter(p => Number(p.page) === _homeCurPage);
+
+  if(!prods.length) {
+    wrap.innerHTML = `<div class="empty-wrap"><span class="empty-icon">🛍️</span><p class="empty-txt">此分類目前沒有商品</p></div>`;
+    return;
+  }
+  const grid = document.createElement('div');
+  grid.className = 'product-grid';
+  prods.forEach(prod => grid.appendChild(makeProductCard(prod)));
+  wrap.innerHTML = '';
+  wrap.appendChild(grid);
+}
+
+function renderHomeAddBtn() {
+  const wrap = document.getElementById('home-add-prod-wrap');
+  if(!wrap) return;
+  if(document.body.classList.contains('owner-mode')) {
+    wrap.innerHTML = `<button class="btn-add-prod" onclick="openNewProdModal()" style="margin-bottom:12px;">＋ 新增商品</button>`;
+  } else {
+    wrap.innerHTML = '';
+  }
+}
 
 function renderCategoryPage(){
   const grid = document.getElementById('cat-grid');
@@ -1556,8 +1646,6 @@ function goCheckoutFromCart(){
 function renderCheckoutPage(){
   if(!window._lineUser){ showToast('請先登入 LINE 才能結帳'); goStep(3); return; }
   // 自動帶入已填電話到購物金查詢欄
-  // 動態載入付款方式按鈕
-  loadPayMethods();
   const existPhone = document.getElementById('inp-phone').value.trim();
   if(existPhone) document.getElementById('sc-query-phone').value = existPhone;
   // 清除上次購物金折抵
@@ -1602,29 +1690,7 @@ function renderCheckoutPage(){
 }
 
 // 送出訂單
-async function loadPayMethods() {
-  try {
-    const r = await fetch(GAS_URL+'?action=getPayMethods&enabledOnly=true&t='+Date.now());
-    const d = await r.json();
-    if(!d.ok) return;
-    _payMethodsCache = d.methods || [];
-    renderPayBtns();
-  } catch(e) { console.warn('付款方式載入失敗', e); }
-}
-
-function renderPayBtns() {
-  const container = document.getElementById('pay-btns-container');
-  if(!container) return;
-  if(!_payMethodsCache.length) {
-    container.innerHTML = '<div style="text-align:center;color:#aaa;font-size:13px;padding:12px;">目前無可用付款方式</div>';
-    return;
-  }
-  container.innerHTML = _payMethodsCache.map(m =>
-    `<button class="pay-btn" style="background:${m.color||'#888'};" onclick="goToPayment('${m.id}')">${m.icon} ${m.name}</button>`
-  ).join('');
-}
-
-async function goToPayment(method){async function goToPayment(method){
+async function goToPayment(method){
   const phone    = document.getElementById('inp-phone').value.trim();
   const shipping = document.querySelector('input[name="shipping"]:checked');
   if(!phone){ alert('請填寫聯絡電話'); document.getElementById('inp-phone').focus(); return; }
@@ -1684,30 +1750,28 @@ async function goToPayment(method){async function goToPayment(method){
     `<div style="font-size:1rem;font-family:'Playfair Display',serif;color:var(--bark)">NT$ ${finalTotal.toLocaleString()}</div>`;
   document.getElementById('order-modal-wrap').classList.add('on');
 
-  // 付款跳轉（動態讀快取）
-  const pmObj2 = _payMethodsCache.find(m => m.id === method);
-  const payInfo = pmObj2 ? pmObj2.info : '';
-  if(payInfo && payInfo.startsWith('http')) {
-    window.open(payInfo, '_blank');
-  } else {
-    // 帳號型：顯示資訊區塊
-    const el = document.getElementById('transfer-info-block');
-    if(el) {
-      const label = pmObj2 ? pmObj2.icon+' '+pmObj2.name+' 付款資訊' : '付款資訊';
-      el.innerHTML = `${label}<br><strong style="font-size:14px;white-space:pre-wrap;">${payInfo||'請聯繫 Elsa 取得付款資訊'}</strong><br><span style="color:#888;font-size:11px">付款後請截圖傳給 Elsa 確認</span>`;
-      el.style.display = 'block';
-    }
-  }
+  // 付款跳轉
+  if(method==='jko') window.open(JKO_PAY_URL,'_blank');
+  else if(method==='ipass'){
+    try{ const r=await fetch(GAS_URL+'?action=getBankInfo');const d=await r.json();window.open(d.ipass||'https://www.ipass.com.tw/','_blank'); }catch(_){ window.open('https://www.ipass.com.tw/','_blank'); }
+  } else if(method==='transfer'){ showTransferInfo(); }
 }
 
-// showTransferInfo 已由 goToPayment 動態處理，保留空函式避免呼叫錯誤
-function showTransferInfo(){ /* deprecated */ }
+async function showTransferInfo(){
+  const el = document.getElementById('transfer-info-block');
+  try{
+    const r=await fetch(GAS_URL+'?action=getBankInfo');
+    const d=await r.json();
+    el.innerHTML='🏦 轉帳資訊<br><strong style="font-size:14px">'+(d.account||'請聯繫 Elsa')+'</strong><br><span style="color:#888;font-size:11px">轉帳後請截圖傳給 Elsa 確認</span>';
+  }catch(_){ el.innerHTML='🏦 請聯繫 Elsa 取得轉帳帳號'; }
+  el.style.display='block';
+}
 
 function submitOrderToSheet(orderNum,total,items,gift,phone,shipping,address,note,method){
   const lineName  = window._lineUser ? window._lineUser.displayName : '未登入';
   const lineUid   = window._lineUser ? ('line_'+window._lineUser.userId) : '';
   const isVoucher = items.includes('服務券')||items.includes('套餐');
-  const pmObj = _payMethodsCache.find(m=>m.id===method); const payStr = pmObj ? pmObj.name : method;
+  const payStr    = method==='jko'?'街口':method==='ipass'?'iPASS':'轉帳';
   const params    = new URLSearchParams({orderNum, time:new Date().toLocaleString('zh-TW',{timeZone:'Asia/Taipei'}), items, total, gift:gift||'無', lineName, lineUid, phone, shipping, address, note, payMethod:payStr, isVoucher:String(isVoucher)});
   fetch(GAS_URL+'?'+params.toString()).catch(()=>{});
 }
