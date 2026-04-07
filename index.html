@@ -368,6 +368,19 @@ body.owner-mode .product-card:hover{border-color:var(--rose);}
 .disc-type-btn{flex:1;padding:5px;border:1.5px solid var(--border);background:none;border-radius:3px;font-size:.65rem;font-family:'Noto Sans TC',sans-serif;color:var(--mid);cursor:pointer;transition:all .2s;}
 .disc-type-btn.active{border-color:var(--gold);color:var(--gold);background:rgba(184,137,90,.08);}
 
+/* 購物金抵扣區 */
+.shop-credit-section{background:rgba(58,123,200,.06);border:1.5px solid rgba(58,123,200,.3);border-radius:6px;padding:14px 16px;margin-bottom:14px;}
+.shop-credit-title{font-size:.78rem;font-weight:600;color:#2d5a8e;margin-bottom:10px;font-family:'Noto Sans TC',sans-serif;}
+.shop-credit-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;}
+.shop-credit-input{flex:1;padding:8px 10px;border:1.5px solid #b8cce8;border-radius:3px;font-family:'Noto Serif TC',serif;font-size:.8rem;outline:none;}
+.shop-credit-input:focus{border-color:#3a7bc8;}
+.shop-credit-btn{padding:8px 14px;background:#2d5a8e;color:#fff;border:none;border-radius:3px;font-family:'Noto Sans TC',sans-serif;font-size:.75rem;cursor:pointer;white-space:nowrap;}
+.shop-credit-info{background:#e8f0fa;border-radius:4px;padding:8px 12px;font-size:.72rem;color:#2d5a8e;font-family:'Noto Sans TC',sans-serif;display:none;}
+.shop-credit-deduct-row{display:flex;gap:8px;align-items:center;margin-top:8px;}
+.shop-credit-deduct-row input{flex:1;padding:7px 10px;border:1.5px solid #b8cce8;border-radius:3px;font-size:.8rem;outline:none;}
+.shop-credit-apply-btn{padding:7px 14px;background:#3a7bc8;color:#fff;border:none;border-radius:3px;font-size:.75rem;cursor:pointer;}
+.shop-credit-applied{background:rgba(45,122,79,.1);border-left:3px solid #2d7a4f;padding:7px 12px;font-size:.72rem;color:#2d7a4f;margin-top:8px;border-radius:0 3px 3px 0;font-family:'Noto Sans TC',sans-serif;display:none;}
+
 footer{background:var(--bark);color:rgba(255,255,255,.45);text-align:center;padding:18px 16px;font-size:.65rem;letter-spacing:.05em;font-family:'Noto Sans TC',sans-serif;}
 
 /* ── 影音區塊 ── */
@@ -770,6 +783,27 @@ footer{background:var(--bark);color:rgba(255,255,255,.45);text-align:center;padd
       </div>
     </div>
 
+    <!-- 購物金抵扣 -->
+    <div class="checkout-card" id="shop-credit-card">
+      <div class="cc-head"><h3>🛍️ 購物金折抵</h3></div>
+      <div class="cc-body">
+        <div class="shop-credit-section">
+          <div class="shop-credit-title">💳 輸入電話查詢購物金餘額</div>
+          <div class="shop-credit-row">
+            <input class="shop-credit-input" type="tel" id="sc-query-phone" placeholder="0912345678（自動帶入已填電話）">
+            <button class="shop-credit-btn" onclick="queryShopCredit()">查詢餘額</button>
+          </div>
+          <div class="shop-credit-info" id="sc-info"></div>
+          <div class="shop-credit-deduct-row" id="sc-deduct-row" style="display:none">
+            <input type="number" id="sc-deduct-amt" placeholder="輸入折抵金額" min="0" class="shop-credit-input">
+            <button class="shop-credit-apply-btn" onclick="applyShopCredit()">套用折抵</button>
+            <button style="padding:7px 10px;background:none;border:1.5px solid #ccc;border-radius:3px;font-size:.72rem;color:#888;cursor:pointer;" onclick="clearShopCredit()">取消</button>
+          </div>
+          <div class="shop-credit-applied" id="sc-applied"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- 付款 -->
     <div class="checkout-card">
       <div class="cc-head"><h3>💳 選擇付款方式</h3></div>
@@ -1013,6 +1047,12 @@ footer{background:var(--bark);color:rgba(255,255,255,.45);text-align:center;padd
 // ══════ 設定 ══════
 const GAS_URL     = 'https://script.google.com/macros/s/AKfycbwFLBUwkVoxXOccvgUWdsbaMt4TmAorHHIQOEsWlek9rEGi1YzoMnZi2-JnBEOG56xmxw/exec';
 const JKO_PAY_URL = 'https://service.jkopay.com/r/transfer?j=Transfer:900666675';
+const GAS_SHOP_URL = GAS_URL; // 購物金用同一條GAS
+
+// 購物金狀態
+let shopCreditBalance = 0;   // 查到的餘額
+let shopCreditDeduct  = 0;   // 本次折抵金額
+let shopCreditPhone   = '';  // 查詢用的電話
 
 // ══════ 狀態 ══════
 let currentStep   = 1;
@@ -1489,6 +1529,14 @@ function goCheckoutFromCart(){
 // ══════════════════════════════════════════════
 function renderCheckoutPage(){
   if(!window._lineUser){ showToast('請先登入 LINE 才能結帳'); goStep(3); return; }
+  // 自動帶入已填電話到購物金查詢欄
+  const existPhone = document.getElementById('inp-phone').value.trim();
+  if(existPhone) document.getElementById('sc-query-phone').value = existPhone;
+  // 清除上次購物金折抵
+  shopCreditDeduct=0; shopCreditBalance=0;
+  document.getElementById('sc-info').style.display='none';
+  document.getElementById('sc-deduct-row').style.display='none';
+  document.getElementById('sc-applied').style.display='none';
   if(!cart.length){ showToast('購物車是空的'); goStep(3); return; }
 
   const subtotal   = cart.reduce((s,x)=>s+x.price*x.qty,0);
@@ -1509,6 +1557,8 @@ function renderCheckoutPage(){
   if(orderDisc>0) html+=`<div class="order-item-row"><div><span class="order-item-name" style="color:var(--moss)">🎉 滿額折扣</span></div><div class="order-item-price" style="color:var(--moss)">-NT$ ${orderDisc.toLocaleString()}</div></div>`;
   document.getElementById('checkout-items-list').innerHTML = html;
   document.getElementById('checkout-total').textContent = 'NT$ '+finalTotal.toLocaleString();
+  // 重新渲染購物金折抵顯示
+  updateShopCreditDisplay();
 
   const discBar = document.getElementById('checkout-discount-bar');
   if(totalDisc>0){ discBar.style.display='block'; discBar.textContent=`🎉 已享折扣 -NT$${totalDisc.toLocaleString()}`; }
@@ -1544,12 +1594,29 @@ async function goToPayment(method){
   const prodDisc   = cart.reduce((s,x)=>s+calcProdDiscount(x),0);
   const{matched}   = calcDiscount(subtotal);
   const orderDisc  = matched?matched.discount:0;
-  const finalTotal = subtotal-prodDisc-orderDisc;
+  const finalTotal = subtotal-prodDisc-orderDisc-shopCreditDeduct;
   const itemsText  = cart.map(x=>`${x.name}×${x.qty}`).join('、');
   const giftVal    = document.getElementById('gift-choice').value;
 
+  // 如果有用購物金折抵，先扣款
+  if(shopCreditDeduct > 0 && shopCreditPhone){
+    try{
+      await fetch(GAS_SHOP_URL, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          action:'deductShopCredit',
+          phone: shopCreditPhone,
+          name: window._lineUser ? window._lineUser.displayName : '',
+          amount: shopCreditDeduct,
+          note: `購物折抵 訂單${currentOrderNum}`
+        })
+      });
+    }catch(_){}
+  }
+
   // 寫 GAS + Firestore
-  submitOrderToSheet(currentOrderNum, finalTotal, itemsText, giftVal, phone, shipping.value, document.getElementById('inp-address').value.trim(), document.getElementById('inp-note').value.trim(), method);
+  const noteWithCredit = (document.getElementById('inp-note').value.trim() + (shopCreditDeduct>0?` [購物金折抵$${shopCreditDeduct}]`:'')).trim();
+  submitOrderToSheet(currentOrderNum, finalTotal, itemsText, giftVal, phone, shipping.value, document.getElementById('inp-address').value.trim(), noteWithCredit, method);
   if(typeof saveOrderToFirestore==='function') saveOrderToFirestore(currentOrderNum, finalTotal, itemsText, giftVal);
 
   // 顯示成功彈窗
@@ -1588,7 +1655,7 @@ function submitOrderToSheet(orderNum,total,items,gift,phone,shipping,address,not
 function closeOrderModal(){
   document.getElementById('order-modal-wrap').classList.remove('on');
   // 清空購物車並回 Step 1
-  cart=[]; updateCart();
+  cart=[]; updateCart(); shopCreditDeduct=0; shopCreditBalance=0; shopCreditPhone='';
   document.getElementById('inp-phone').value='';
   document.getElementById('inp-note').value='';
   document.getElementById('inp-address').value='';
@@ -1811,6 +1878,91 @@ function saveSampleSeries(){
   closeModal('sample-edit');
   showToast('✓ 體驗包系列已更新');
 }
+
+// ══════════════════════════════════════════════
+// 購物金折抵功能
+// ══════════════════════════════════════════════
+async function queryShopCredit(){
+  const phone = document.getElementById('sc-query-phone').value.trim() ||
+                document.getElementById('inp-phone').value.trim();
+  if(!phone){ showToast('請輸入電話'); return; }
+  showToast('查詢中…');
+  try{
+    const r = await fetch(GAS_SHOP_URL+'?action=listShopCredits&phone='+encodeURIComponent(phone)+'&t='+Date.now());
+    const d = await r.json();
+    if(!d.ok){ showToast('查詢失敗'); return; }
+    const bal = (d.data||[]).reduce((s,row)=>s+Number(row['餘額']||0),0);
+    shopCreditBalance = bal;
+    shopCreditPhone   = phone;
+    const infoEl = document.getElementById('sc-info');
+    infoEl.textContent = `💳 購物金餘額：NT$ ${bal.toLocaleString()}`;
+    infoEl.style.display = 'block';
+    const deductRow = document.getElementById('sc-deduct-row');
+    if(bal > 0){
+      deductRow.style.display = 'flex';
+      // 預填最大可折抵（不超過訂單金額）
+      const orderTotal = getCurrentOrderTotal();
+      document.getElementById('sc-deduct-amt').value = Math.min(bal, orderTotal);
+    } else {
+      deductRow.style.display = 'none';
+      showToast('購物金餘額為 $0');
+    }
+  }catch(e){ showToast('查詢失敗：'+e.message); }
+}
+
+function getCurrentOrderTotal(){
+  const subtotal  = cart.reduce((s,x)=>s+x.price*x.qty,0);
+  const prodDisc  = cart.reduce((s,x)=>s+calcProdDiscount(x),0);
+  const{matched}  = calcDiscount(subtotal);
+  const orderDisc = matched?matched.discount:0;
+  return subtotal - prodDisc - orderDisc;
+}
+
+function applyShopCredit(){
+  const amt = parseInt(document.getElementById('sc-deduct-amt').value)||0;
+  if(amt <= 0){ showToast('請輸入折抵金額'); return; }
+  if(amt > shopCreditBalance){ showToast(`折抵金額不可超過餘額 $${shopCreditBalance}`); return; }
+  const orderTotal = getCurrentOrderTotal();
+  if(amt > orderTotal){ showToast(`折抵金額不可超過訂單金額 $${orderTotal}`); return; }
+  shopCreditDeduct = amt;
+  updateShopCreditDisplay();
+  showToast(`✓ 購物金折抵 NT$${amt} 已套用`);
+}
+
+function clearShopCredit(){
+  shopCreditDeduct = 0;
+  document.getElementById('sc-applied').style.display = 'none';
+  document.getElementById('sc-deduct-row').style.display = shopCreditBalance>0 ? 'flex' : 'none';
+  updateShopCreditDisplay();
+}
+
+function updateShopCreditDisplay(){
+  const appliedEl = document.getElementById('sc-applied');
+  if(shopCreditDeduct > 0){
+    appliedEl.textContent = `✅ 購物金折抵 -NT$ ${shopCreditDeduct.toLocaleString()}（已套用）`;
+    appliedEl.style.display = 'block';
+    document.getElementById('sc-deduct-row').style.display = 'none';
+  } else {
+    appliedEl.style.display = 'none';
+  }
+  // 更新結帳金額顯示
+  const subtotal   = cart.reduce((s,x)=>s+x.price*x.qty,0);
+  const prodDisc   = cart.reduce((s,x)=>s+calcProdDiscount(x),0);
+  const{matched}   = calcDiscount(subtotal);
+  const orderDisc  = matched?matched.discount:0;
+  const finalTotal = subtotal - prodDisc - orderDisc - shopCreditDeduct;
+  document.getElementById('checkout-total').textContent = 'NT$ '+finalTotal.toLocaleString();
+  const discBar = document.getElementById('checkout-discount-bar');
+  const totalDisc = prodDisc + orderDisc + shopCreditDeduct;
+  if(totalDisc > 0){ discBar.style.display='block'; discBar.textContent=`🎉 已享折扣 -NT$${totalDisc.toLocaleString()}${shopCreditDeduct>0?' (含購物金折抵)':''}`; }
+  else { discBar.style.display='none'; }
+}
+
+// 電話輸入時同步到購物金查詢欄
+document.getElementById('inp-phone').addEventListener('input', function(){
+  const scPhone = document.getElementById('sc-query-phone');
+  if(!scPhone.value) scPhone.value = this.value;
+});
 
 // ══════════════════════════════════════════════
 // 初始化
