@@ -1285,13 +1285,23 @@ async function saveProdToSheet(){
     const prodId = document.getElementById('edit-prod-id').value.trim();
     let imgUrl = document.getElementById('edit-img-url').value.trim();
 
-    // ── 步驟1：有新圖片 → 壓縮成 base64 直接存 Sheet（零CORS問題）──
+    // ── 步驟1：有新圖片 → 上傳到 Cloudinary（專為前端設計，零CORS）──
     if(editImgBase64 && editImgBase64.startsWith('data:')){
-      btn.textContent='壓縮圖片中…';
+      btn.textContent='上傳圖片中…';
       try{
-        // 壓縮到 300px/q=0.6，約 8-12KB base64，Sheet 單格上限 50KB 完全夠
-        imgUrl = await compressImage(editImgBase64, 300, 0.6);
-      }catch(e){ showToast('⚠️ 圖片壓縮失敗：'+e.message); }
+        const compressed = await compressImage(editImgBase64, 800, 0.8);
+        const blob = await fetch(compressed).then(r=>r.blob());
+        const fd   = new FormData();
+        fd.append('file', blob, 'product.jpg');
+        fd.append('upload_preset', 'uni_hair');
+        const res  = await fetch('https://api.cloudinary.com/v1_1/dvti8ug8s/image/upload', {
+          method: 'POST',
+          body: fd
+        });
+        const data = await res.json();
+        if(data.secure_url) imgUrl = data.secure_url;
+        else showToast('⚠️ 圖片上傳失敗');
+      }catch(e){ showToast('⚠️ 圖片上傳失敗：'+e.message); }
     }
 
     // ── 步驟2：商品資料用 GET 儲存（無 CORS 問題，即時確認）──
