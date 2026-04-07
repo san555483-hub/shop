@@ -1283,63 +1283,60 @@ async function saveProdToSheet(){
   btn.textContent='儲存中…'; btn.disabled=true;
   try{
     const prodId = document.getElementById('edit-prod-id').value.trim();
-    // 圖片：如果有上傳，壓縮後直接當 base64 存；否則用 hidden 欄位裡的既有 URL
-    let imgData = document.getElementById('edit-img-url').value.trim(); // 已存過的 URL 或 base64
+    let imgUrl = document.getElementById('edit-img-url').value.trim();
 
+    // ── 步驟1：有新圖片 → POST 上傳到 Google Drive 拿 URL ──
     if(editImgBase64 && editImgBase64.startsWith('data:')){
-      btn.textContent='壓縮圖片中…';
-      // 壓縮到 300px / q=0.6，確保 GAS URL 參數放得下（約 30KB → base64 40KB → URL ~54KB，GAS 上限 ~200KB OK）
-      imgData = await compressImage(editImgBase64, 300, 0.6);
+      btn.textContent='上傳圖片中…';
+      try{
+        const compressed = await compressImage(editImgBase64, 600, 0.75);
+        const mimeMatch  = compressed.match(/^data:([^;]+);base64,/);
+        const mimeType   = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+        const base64Only = compressed.replace(/^data:[^;]+;base64,/, '');
+        const uploadRes  = await fetch(GAS_URL, {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({
+            action:'uploadImage',
+            base64: base64Only,
+            mimeType,
+            filename: 'prod_'+(prodId||Date.now())+'.jpg'
+          })
+        });
+        const uploadData = await uploadRes.json();
+        if(uploadData.ok && uploadData.url) imgUrl = uploadData.url;
+        else showToast('⚠️ 圖片上傳失敗，使用舊圖或空白');
+      }catch(e){ showToast('⚠️ 圖片上傳失敗：'+e.message); }
     }
 
+    // ── 步驟2：商品資料用 GET 儲存（無 CORS 問題，即時確認）──
     btn.textContent='儲存商品中…';
-    // 圖片用 POST 送（base64 可能超過 URL 長度限制），其他欄位也一起 POST
-    // 用 no-cors 送出，GAS 用暫存 key 存起來，前端再 GET 輪詢確認
-    const payload = {
-      action:'saveProduct', id:prodId||'',
-      page:document.getElementById('edit-page').value,
-      category:document.getElementById('edit-category').value.trim(),
-      name:document.getElementById('edit-name').value.trim(),
-      series:document.getElementById('edit-series').value.trim(),
-      desc:document.getElementById('edit-desc').value.trim(),
-      price:Number(document.getElementById('edit-price').value)||0,
-      priceOrig:document.getElementById('edit-price-orig').value.trim(),
-      imgUrl: imgData,
-      tag:document.getElementById('edit-tag').value.trim(),
-      stock:Number(document.getElementById('edit-stock').value)||999,
-      enabled:document.getElementById('edit-enabled').value==='true'?'true':'false',
-      discType:editDiscType,
-      discThreshold:Number(document.getElementById('edit-disc-thr').value)||0,
-      discAmount:Number(document.getElementById('edit-disc-amt').value)||0,
-    };
-
-    // 用 no-cors POST（繞過 CORS），GAS 接收後存 Sheet
-    // 同時送一個有 token 的 GET 請求輪詢結果
-    const token = 'tok_' + Date.now();
-    payload.token = token;
-
-    fetch(GAS_URL, {
-      method:'POST',
-      mode:'no-cors',
-      headers:{'Content-Type':'text/plain'},
-      body: JSON.stringify(payload)
+    const params = new URLSearchParams({
+      action:'saveProduct',
+      id: prodId||'',
+      page: document.getElementById('edit-page').value,
+      category: document.getElementById('edit-category').value.trim(),
+      name: document.getElementById('edit-name').value.trim(),
+      series: document.getElementById('edit-series').value.trim(),
+      desc: document.getElementById('edit-desc').value.trim(),
+      price: Number(document.getElementById('edit-price').value)||0,
+      priceOrig: document.getElementById('edit-price-orig').value.trim(),
+      imgUrl: imgUrl,
+      tag: document.getElementById('edit-tag').value.trim(),
+      stock: Number(document.getElementById('edit-stock').value)||999,
+      enabled: document.getElementById('edit-enabled').value==='true'?'true':'false',
+      discType: editDiscType,
+      discThreshold: Number(document.getElementById('edit-disc-thr').value)||0,
+      discAmount: Number(document.getElementById('edit-disc-amt').value)||0,
     });
 
-    // 輪詢 GAS 確認已儲存（最多等 12 秒）
-    let saved = false;
-    for(let i=0; i<12; i++){
-      await new Promise(r=>setTimeout(r,1000));
-      try{
-        const chk = await fetch(GAS_URL+'?action=checkToken&token='+token);
-        const chkData = await chk.json();
-        if(chkData.ok){ saved=true; break; }
-      }catch(_){}
-    }
+    const res  = await fetch(GAS_URL+'?'+params.toString());
+    const data = await res.json();
 
-    if(saved){
+    if(data.ok){
       showToast('✓ 商品已儲存到 Sheet');
     } else {
-      showToast('✓ 已送出（請稍等 Sheet 更新）');
+      showToast('❌ 儲存失敗：'+(data.msg||''));
     }
     editImgBase64='';
     closeModal('prod-edit');
@@ -1624,21 +1621,16 @@ function saveDiscounts(){
   _saveSettingsToCloud({ discountRules }).then(()=>showToast('✓ 折扣設定已存雲端')).catch(()=>showToast('⚠️ 雲端儲存失敗，本機已更新'));
 }
 
-// ── 設定存/讀雲端（no-cors POST + token輪詢）──
+// ── 設定存雲端（GET版，直接確認）──
 async function _saveSettingsToCloud(data){
-  const token = 'settok_' + Date.now().toString(36);
-  const body  = Object.assign({ _token: token }, data);
-  fetch(GAS_URL, { method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain'}, body: JSON.stringify(Object.assign({action:'saveSettings'}, body)) });
-  // 輪詢確認（最多 6 次 × 1.5s）
-  for(let i=0;i<6;i++){
-    await new Promise(r=>setTimeout(r,1500));
-    try{
-      const r = await fetch(GAS_URL+'?action=checkToken&token='+token);
-      const d = await r.json();
-      if(d.ok) return true;
-    }catch(_){}
-  }
-  return true; // 即使輪詢超時也不報錯（GAS通常已寫入）
+  try{
+    const params = new URLSearchParams({ action:'saveSettings' });
+    if(data.giftOptions)   params.set('giftOptions',   JSON.stringify(data.giftOptions));
+    if(data.discountRules) params.set('discountRules',  JSON.stringify(data.discountRules));
+    const r = await fetch(GAS_URL+'?'+params.toString());
+    const d = await r.json();
+    return d.ok;
+  }catch(e){ console.warn('saveSettings失敗',e); return false; }
 }
 
 async function _loadSettingsFromCloud(){
