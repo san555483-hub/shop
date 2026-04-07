@@ -430,7 +430,7 @@ input:checked + .slider:before { transform: translateX(16px); }
   </div>
 
   <!-- 💳 付款方式編輯 Modal -->
-  <div class="modal-overlay" id="pay-modal" style="display:none;align-items:center;justify-content:center;">
+  <div class="modal-overlay" id="pay-modal" style="display:none;position:fixed;inset:0;z-index:999;align-items:center;justify-content:center;">
     <div class="modal" style="max-width:480px;width:95vw;">
       <div class="modal-head">
         <h3 id="pay-modal-title">新增付款方式</h3>
@@ -448,7 +448,19 @@ input:checked + .slider:before { transform: translateX(16px); }
         </div>
         <div class="form-group">
           <label>圖示 Emoji</label>
-          <input id="pm-icon" type="text" placeholder="例：🟡 🔵 🏦 💰 📱" style="width:100%;border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:13px;" maxlength="4">
+          <div style="display:flex;gap:8px;">
+            <input id="pm-icon" type="text" placeholder="🟡" style="width:60px;border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:22px;text-align:center;" maxlength="2">
+            <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
+              <span style="font-size:11px;color:#aaa;">快選：</span>
+              <span style="cursor:pointer;font-size:20px;" onclick="document.getElementById('pm-icon').value='🟡'">🟡</span>
+              <span style="cursor:pointer;font-size:20px;" onclick="document.getElementById('pm-icon').value='🔵'">🔵</span>
+              <span style="cursor:pointer;font-size:20px;" onclick="document.getElementById('pm-icon').value='🏦'">🏦</span>
+              <span style="cursor:pointer;font-size:20px;" onclick="document.getElementById('pm-icon').value='💰'">💰</span>
+              <span style="cursor:pointer;font-size:20px;" onclick="document.getElementById('pm-icon').value='📱'">📱</span>
+              <span style="cursor:pointer;font-size:20px;" onclick="document.getElementById('pm-icon').value='💳'">💳</span>
+              <span style="cursor:pointer;font-size:20px;" onclick="document.getElementById('pm-icon').value='🪙'">🪙</span>
+            </div>
+          </div>
         </div>
         <div class="form-group">
           <label>按鈕顏色</label>
@@ -789,7 +801,7 @@ async function loadPaymentTab() {
   try {
     const r = await fetch(GAS+'?action=getPayMethods&t='+Date.now());
     const d = await r.json();
-    if(!d.ok){ el.innerHTML='<div style="color:#c00;padding:12px;">載入失敗：'+d.msg+'</div>'; return; }
+    if(!d.ok){ el.innerHTML='<div style="color:#c00;padding:12px;background:#fdf0ee;border-radius:6px;border-left:3px solid #c00;">⚠️ 載入失敗：'+d.msg+'<br><span style="font-size:11px;color:#888;margin-top:4px;display:block;">請確認 GAS 已部署新版本（包含 getPayMethods API）</span></div>'; return; }
     _payMethods = d.methods || [];
     renderPayMethodList();
   } catch(e) { el.innerHTML='<div style="color:#c00;padding:12px;">連線失敗</div>'; }
