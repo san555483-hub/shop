@@ -793,6 +793,104 @@ async function saveShopDiscounts() {
     if(d.ok) renderDiscountArea();
   } catch(e) { showMsg('msgDiscount','❌ 儲存失敗',false); }
 }
+
+// ══ 購物金系統 ══
+const GAS_SHOP_CREDIT = GAS_SHOP;
+let _scCurrentPhone='',_scCurrentName='',_scCurrentBal=0;
+let _shopCreditPlans=Array(5).fill(null).map((_,i)=>({label:'方案'+(i+1),amount:0,bonus:0,enabled:false}));
+
+async function loadShopCreditTab(){await loadShopCreditPlans();loadAllShopCredits();loadShopPaySettings();}
+
+async function loadShopCreditPlans(){
+  try{const r=await fetch(GAS_SHOP_CREDIT+'?action=getSettings&t='+Date.now());const d=await r.json();
+    if(d.ok&&d.settings){for(let i=1;i<=5;i++){const k='shop_credit_plan_'+i;if(d.settings[k])_shopCreditPlans[i-1]=d.settings[k];}}
+  }catch(e){}
+  renderShopPlanTable();
+}
+
+function renderShopPlanTable(){
+  const tb=document.getElementById('shopPlanTbody');if(!tb)return;
+  tb.innerHTML=_shopCreditPlans.map((p,i)=>`<tr><td style="color:#888;font-size:12px">方案${i+1}</td><td><input style="width:100px;border:1px solid #ddd;border-radius:4px;padding:4px 8px;font-size:13px" value="${p?p.label||'':''}" id="spl_${i}" placeholder="方案名稱"></td><td><input type="number" style="width:90px;border:1px solid #ddd;border-radius:4px;padding:4px 8px;font-size:13px" value="${p?p.amount||0:0}" id="spa_${i}"></td><td><input type="number" style="width:90px;border:1px solid #ddd;border-radius:4px;padding:4px 8px;font-size:13px" value="${p?p.bonus||0:0}" id="spb_${i}"></td><td><label class="toggle"><input type="checkbox" id="spe_${i}" ${p&&p.enabled?'checked':''}><span class="slider"></span></label></td></tr>`).join('');
+}
+
+async function saveShopCreditPlans(){
+  const params=new URLSearchParams({action:'saveSettings'});
+  for(let i=0;i<5;i++){params.set('shop_credit_plan_'+(i+1),JSON.stringify({label:document.getElementById('spl_'+i).value.trim(),amount:parseInt(document.getElementById('spa_'+i).value)||0,bonus:parseInt(document.getElementById('spb_'+i).value)||0,enabled:document.getElementById('spe_'+i).checked}));}
+  try{const r=await fetch(GAS_SHOP_CREDIT+'?'+params.toString());const d=await r.json();showMsg('msgShopPlan',d.ok?'✅ 方案已儲存':'❌ '+d.msg,d.ok);}
+  catch(e){showMsg('msgShopPlan','❌ 儲存失敗',false);}
+}
+
+async function loadShopPaySettings(){
+  try{const r=await fetch(GAS_SHOP_CREDIT+'?action=getSettings&t='+Date.now());const d=await r.json();
+    if(d.ok&&d.settings){['cash','transfer','jko','ipass'].forEach(k=>{const el=document.getElementById('sp_'+k);if(el)el.checked=String(d.settings['shop_pay_'+k]||'TRUE').toUpperCase()==='TRUE';});}
+  }catch(e){}
+}
+
+async function saveShopPayMethods(){
+  const params=new URLSearchParams({action:'saveSettings'});
+  ['cash','transfer','jko','ipass'].forEach(k=>{params.set('shop_pay_'+k,document.getElementById('sp_'+k).checked?'TRUE':'FALSE');});
+  try{const r=await fetch(GAS_SHOP_CREDIT+'?'+params.toString());const d=await r.json();showMsg('msgShopPay',d.ok?'✅ 支付設定已儲存':'❌ '+d.msg,d.ok);}
+  catch(e){showMsg('msgShopPay','❌ 儲存失敗',false);}
+}
+
+let _scSignLink='';
+function genShopCreditLink(){
+  const name=document.getElementById('sc-name').value.trim(),phone=document.getElementById('sc-phone').value.trim();
+  if(!name||!phone){alert('請填寫姓名和電話');return;}
+  _scSignLink='https://san555483-hub.github.io/shop-credit-sign.html?name='+encodeURIComponent(name)+'&phone='+encodeURIComponent(phone);
+  document.getElementById('scLinkUrl').textContent=_scSignLink;
+  document.getElementById('scLinkResult').style.display='block';
+  document.getElementById('scLinkCopied').style.display='none';
+}
+function copyScLink(){if(!_scSignLink)return;navigator.clipboard.writeText(_scSignLink).then(()=>{document.getElementById('scLinkCopied').style.display='block';setTimeout(()=>document.getElementById('scLinkCopied').style.display='none',3000);});}
+function openScLink(){if(_scSignLink)window.open(_scSignLink,'_blank');}
+
+async function loadAllShopCredits(){
+  document.getElementById('scSummary').style.display='none';document.getElementById('scSearchPhone').value='';_scCurrentPhone='';renderScTable([]);
+  try{const r=await fetch(GAS_SHOP_CREDIT+'?action=listShopCredits&t='+Date.now());const d=await r.json();if(d.ok)renderScTable(d.data);else alert('載入失敗：'+d.msg);}
+  catch(e){alert('載入失敗');}
+}
+
+async function searchShopCredits(){
+  const phone=document.getElementById('scSearchPhone').value.trim();if(!phone){loadAllShopCredits();return;}
+  try{const r=await fetch(GAS_SHOP_CREDIT+'?action=listShopCredits&phone='+encodeURIComponent(phone)+'&t='+Date.now());const d=await r.json();
+    if(!d.ok){alert(d.msg);return;}renderScTable(d.data);
+    if(d.data.length){const bal=d.data.reduce((s,r)=>s+Number(r['餘額']||0),0);_scCurrentPhone=phone;_scCurrentName=d.data[0]['姓名']||'';_scCurrentBal=bal;document.getElementById('sc-cs-name').textContent=_scCurrentName;document.getElementById('sc-cs-balance').textContent=bal.toLocaleString();document.getElementById('scSummary').style.display='block';}
+    else{document.getElementById('scSummary').style.display='none';alert('查無此電話的購物金記錄');}
+  }catch(e){alert('查詢失敗');}
+}
+
+function renderScTable(rows){
+  const tb=document.getElementById('scCreditTbody');
+  if(!rows.length){tb.innerHTML='<tr><td colspan="9" style="text-align:center;color:#999;padding:30px;">查無資料</td></tr>';return;}
+  tb.innerHTML=rows.map(r=>{const bal=Number(r['餘額']||0),amt=Number(r['儲值金額']||0);return`<tr><td>${r['姓名']||'-'}</td><td>${r['電話']||'-'}</td><td class="${amt>=0?'credit-positive':'credit-negative'}">$${amt.toLocaleString()}</td><td>$${Number(r['贈送金額']||0).toLocaleString()}</td><td class="${bal>=0?'credit-positive':'credit-negative'}">$${bal.toLocaleString()}</td><td>${r['支付方式']||'-'}</td><td style="font-size:11px">${r['建立時間']||'-'}</td><td>${r['備註']||'-'}</td><td><button class="btn btn-red btn-sm" onclick="deleteScCredit(${r._row})">刪除</button></td></tr>`;}).join('');
+}
+
+function openAddShopCreditModal(){document.getElementById('asc-phone').value=_scCurrentPhone;document.getElementById('asc-name').value=_scCurrentName;document.getElementById('asc-note').value='';document.getElementById('addShopCreditModal').classList.add('show');}
+
+async function submitAddShopCredit(){
+  const phone=document.getElementById('asc-phone').value.trim(),amount=document.getElementById('asc-amount').value;
+  if(!phone||!amount){alert('請填寫電話和儲值金額');return;}
+  try{const r=await fetch(GAS_SHOP_CREDIT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'addShopCredit',name:document.getElementById('asc-name').value.trim(),phone,amount,bonus:document.getElementById('asc-bonus').value||0,payMethod:document.getElementById('asc-pay').value,note:document.getElementById('asc-note').value})});
+    const d=await r.json();if(d.ok){alert('✅ 購物金新增成功！餘額：$'+d.balance);closeModal('addShopCreditModal');loadAllShopCredits();}else alert('失敗：'+d.msg);}
+  catch(e){alert('送出失敗');}
+}
+
+function openScDeductModal(){document.getElementById('scdm-name').textContent=_scCurrentName;document.getElementById('scdm-balance').textContent=_scCurrentBal.toLocaleString();document.getElementById('scdm-amount').value='';document.getElementById('scdm-note').value='';document.getElementById('scDeductModal').classList.add('show');}
+
+async function submitScDeduct(){
+  const amount=document.getElementById('scdm-amount').value;if(!amount){alert('請輸入扣款金額');return;}
+  try{const r=await fetch(GAS_SHOP_CREDIT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'deductShopCredit',phone:_scCurrentPhone,name:_scCurrentName,amount,note:document.getElementById('scdm-note').value})});
+    const d=await r.json();if(d.ok){alert('✅ '+d.msg+'\n剩餘餘額：$'+d.remainBalance);closeModal('scDeductModal');searchShopCredits();}else alert('失敗：'+d.msg);}
+  catch(e){alert('送出失敗');}
+}
+
+async function deleteScCredit(row){
+  if(!confirm('確定刪除這筆記錄？'))return;
+  try{const r=await fetch(GAS_SHOP_CREDIT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'deleteShopCredit',row})});const d=await r.json();if(d.ok){alert('已刪除');loadAllShopCredits();}else alert('失敗：'+d.msg);}
+  catch(e){alert('刪除失敗');}
+}
+
 </script>
 <!-- 手動新增購物金 Modal -->
 <div id="addShopCreditModal" class="modal-overlay">
