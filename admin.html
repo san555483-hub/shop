@@ -799,7 +799,7 @@ async function loadPaymentTab() {
   const el = document.getElementById('payMethodList');
   el.innerHTML = '<div class="loading">載入中...</div>';
   try {
-    const r = await fetch(GAS+'?action=getPayMethods&t='+Date.now());
+    const r = await fetch(GAS_SHOP+'?action=getPayMethods&t='+Date.now());
     const d = await r.json();
     if(!d.ok){ el.innerHTML='<div style="color:#c00;padding:12px;background:#fdf0ee;border-radius:6px;border-left:3px solid #c00;">⚠️ 載入失敗：'+d.msg+'<br><span style="font-size:11px;color:#888;margin-top:4px;display:block;">請確認 GAS 已部署新版本（包含 getPayMethods API）</span></div>'; return; }
     _payMethods = d.methods || [];
@@ -871,7 +871,7 @@ async function savePayMethodForm() {
   if(!id || !name){ msgEl.style.display='block'; msgEl.style.background='#fdf0ee'; msgEl.style.color='#c00'; msgEl.textContent='ID 和名稱必填'; return; }
   msgEl.style.display='block'; msgEl.style.background='#f5f5f5'; msgEl.style.color='#555'; msgEl.textContent='儲存中…';
   try {
-    const r = await fetch(GAS, { method:'POST', headers:{'Content-Type':'application/json'},
+    const r = await fetch(GAS_SHOP, { method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ action:'savePayMethod', id, name, icon, color, info, order, enabled }) });
     const d = await r.json();
     if(d.ok){ closePayModal(); loadPaymentTab(); }
@@ -882,7 +882,7 @@ async function savePayMethodForm() {
 async function deletePayMethod(id, name) {
   if(!confirm(`確定刪除「${name}」？刪除後顧客結帳頁將不再顯示此付款方式。`)) return;
   try {
-    const r = await fetch(GAS, { method:'POST', headers:{'Content-Type':'application/json'},
+    const r = await fetch(GAS_SHOP, { method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ action:'deletePayMethod', id }) });
     const d = await r.json();
     if(d.ok) loadPaymentTab();
