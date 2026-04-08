@@ -1270,6 +1270,7 @@ async function savePageConfigs() {
 }
 
 async function initHomeShop() {
+  // exposed as window.initHomeShop for cross-module access
   // 同時載入 pageConfigs + 商品資料
   const fetches = [
     fetch(`${GAS_URL}?action=getSettings&t=`+Date.now()).then(r=>r.json()).catch(()=>({ok:false}))
@@ -1288,6 +1289,7 @@ async function initHomeShop() {
   renderHomeProducts();
   renderHomeAddBtn();
 }
+window.initHomeShop = initHomeShop; // expose to Firebase module scope
 
 function renderHomeCatTabs() {
   const bar = document.getElementById('home-cat-tabs');
@@ -1354,7 +1356,7 @@ function renderHomeProducts() {
         // 店家：空格可點新增
         const pageIdx = _homeCurPage;
         slot.style.cssText = 'border:2px dashed rgba(184,137,90,.3);border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:180px;color:rgba(184,137,90,.5);cursor:pointer;transition:all .2s;';
-        slot.innerHTML = '<span style="font-size:26px;margin-bottom:6px;">＋</span><span style="font-size:.7rem;font-family:'Noto Sans TC',sans-serif;">新增商品</span>';
+        slot.innerHTML = '<span style="font-size:26px;margin-bottom:6px;">＋</span><span style="font-size:.7rem;font-family:\'Noto Sans TC\',sans-serif;">新增商品</span>';
         slot.onmouseenter = ()=>{ slot.style.borderColor='var(--gold)'; slot.style.color='var(--gold)'; slot.style.background='rgba(184,137,90,.04)'; };
         slot.onmouseleave = ()=>{ slot.style.borderColor='rgba(184,137,90,.3)'; slot.style.color='rgba(184,137,90,.5)'; slot.style.background=''; };
         slot.onclick = ()=>{ _prefillPage=pageIdx; openNewProdModal(); };
