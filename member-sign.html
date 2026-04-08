@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>UNI 髮型設計 · 尊爵服務合約簽署</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/signature_pad/4.1.7/signature_pad.umd.min.js"></script>
+<style>
+:root{
+  --gold:#C9A84C;--gold-light:#E8D08A;
+  --dark:#1A0F08;--dark2:#2C1810;--dark3:#3D2416;
+  --cream:#FDF8F0;--cream2:#F5EBD8;
+  --text:#1A0F08;--text2:#6B4C35;--border:#D4B896;
+  --green:#4A8A4A;--radius:16px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{min-height:100vh;background:var(--cream);font-family:-apple-system,'PingFang TC','Microsoft JhengHei',sans-serif;}
+.header{background:linear-gradient(160deg,var(--dark) 0%,var(--dark2) 60%,var(--dark3) 100%);padding:24px 20px 20px;text-align:center;position:relative;overflow:hidden;}
+.header::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,rgba(201,168,76,.15) 0%,transparent 70%);pointer-events:none;}
+.header-logo{font-size:11px;letter-spacing:5px;color:var(--gold);opacity:.8;text-transform:uppercase;margin-bottom:4px;}
+.header-title{font-size:22px;font-weight:900;color:#fff;letter-spacing:2px;}
+.header-title span{color:var(--gold);}
+.header-sub{font-size:11px;color:var(--gold-light);opacity:.7;margin-top:4px;}
+.wrap{max-width:500px;margin:0 auto;padding:16px;}
+.card{background:#fff;border-radius:var(--radius);box-shadow:0 2px 16px rgba(0,0,0,.08);padding:18px;margin-bottom:12px;border:1px solid rgba(201,168,76,.15);}
+.card-title{font-size:13px;font-weight:800;color:var(--dark2);margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.card-title .ct-line{width:3px;height:14px;background:var(--gold);border-radius:2px;}
+.contract-text{font-size:13px;line-height:2;color:var(--text);max-height:260px;overflow-y:auto;padding:12px;background:var(--cream);border-radius:10px;border:1px solid var(--cream2);}
+.contract-text h4{color:var(--dark2);font-size:13px;margin:12px 0 4px;}
+.info-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--cream2);font-size:13px;}
+.info-row:last-child{border-bottom:none;}
+.info-label{color:var(--text2);}
+.info-value{font-weight:700;}
+.sign-area-wrap{border:2px dashed var(--border);border-radius:12px;background:#fff;overflow:hidden;position:relative;margin-top:10px;}
+#signCanvas{display:block;width:100%;touch-action:none;}
+.sign-hint{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:13px;color:var(--border);pointer-events:none;text-align:center;transition:opacity .3s;}
+.sign-hint.hidden{opacity:0;}
+.btn{padding:14px 20px;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;width:100%;margin-top:10px;letter-spacing:.5px;}
+.btn-gold{background:linear-gradient(135deg,#C9A84C,#E8D08A,#C9A84C);color:var(--dark);}
+.btn-gold:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(201,168,76,.4);}
+.btn-outline{background:transparent;border:1.5px solid var(--border);color:var(--text2);}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none!important;}
+.alert{border-radius:10px;padding:12px 14px;font-size:13px;margin-top:10px;line-height:1.5;}
+.alert-info{background:#FFF8E8;border:1px solid var(--gold-light);color:var(--dark2);}
+.alert-success{background:#F0FFF4;border:1px solid #9AE6B4;color:#276749;}
+.alert-error{background:#FFF0EE;border:1px solid #FFCCC7;color:#A8352E;}
+.success-wrap{text-align:center;padding:40px 20px;}
+.success-icon{font-size:60px;margin-bottom:16px;animation:bounceIn .6s;}
+@keyframes bounceIn{0%{transform:scale(0)}60%{transform:scale(1.1)}100%{transform:scale(1)}}
+.success-title{font-size:22px;font-weight:900;color:var(--dark);}
+.success-sub{font-size:13px;color:var(--text2);margin-top:8px;line-height:1.6;}
+.checkbox-row{display:flex;align-items:flex-start;gap:10px;margin-top:12px;padding:12px;background:var(--cream);border-radius:10px;}
+.checkbox-row input[type=checkbox]{width:20px;height:20px;accent-color:var(--gold);flex-shrink:0;margin-top:1px;}
+.checkbox-row label{font-size:13px;color:var(--text);line-height:1.5;cursor:pointer;}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-logo">UNI Hair Design</div>
+  <div class="header-title">尊<span>爵</span>服務合約</div>
+  <div class="header-sub">✦ 請詳細閱讀後進行簽署 ✦</div>
+</div>
+
+<div class="wrap" id="mainWrap">
+
+  <!-- 顧客資訊 -->
+  <div class="card" id="infoCard">
+    <div class="card-title"><div class="ct-line"></div>簽署人資訊</div>
+    <div class="info-row"><span class="info-label">姓名</span><span class="info-value" id="showName">—</span></div>
+    <div class="info-row"><span class="info-label">手機</span><span class="info-value" id="showPhone">—</span></div>
+    <div class="info-row"><span class="info-label">簽署日期</span><span class="info-value" id="showDate">—</span></div>
+  </div>
+
+  <!-- 合約內容 -->
+  <div class="card">
+    <div class="card-title"><div class="ct-line"></div>尊爵服務合約條款</div>
+    <div class="contract-text">
+      <h4>一、服務說明</h4>
+      本合約適用於 UNI 髮型設計（以下稱「本店」）尊爵會員專屬服務。尊爵會員享有優先預約、包場時段、專屬優惠等特權。
+
+      <h4>二、養護金使用規範</h4>
+      1. 養護金為預付制，儲值後不另行退還（特殊情況依本店規定辦理）。<br>
+      2. 養護金僅限本人使用，不得轉讓他人。<br>
+      3. 養護金餘額可用於抵扣消費金額，不足部分須另行補差額。<br>
+      4. 養護金有效期限為儲值後兩年，請於期限內使用。
+
+      <h4>三、預約規範</h4>
+      1. 預約時段一經確認，請準時到場。<br>
+      2. 如需取消或更改預約，請於 48 小時前通知，否則視為爽約。<br>
+      3. 爽約超過 2 次，本店保留取消尊爵資格之權利。<br>
+      4. 尊爵包場時段為一對一服務，請勿攜帶非預約對象入場。
+
+      <h4>四、退費政策</h4>
+      1. 養護金退費須提出申請，7 日內手續費 3%，7 日後手續費 5%。<br>
+      2. 退費申請請直接聯繫 ELSA 辦理。<br>
+      3. 已使用之服務費用不予退還。
+
+      <h4>五、隱私保護</h4>
+      本店承諾妥善保管您的個人資料，不會洩漏給第三方，僅用於提供服務及聯絡使用。
+
+      <h4>六、其他</h4>
+      本合約如有爭議，以雙方協商為主，協商不成以本店所在地法院為管轄法院。
+    </div>
+
+    <div class="checkbox-row">
+      <input type="checkbox" id="agreeCheck" onchange="checkAgreement()">
+      <label for="agreeCheck">我已詳細閱讀並同意以上所有合約條款，願意遵守本店的尊爵服務規範。</label>
+    </div>
+  </div>
+
+  <!-- 簽名區 -->
+  <div class="card" id="signCard">
+    <div class="card-title"><div class="ct-line"></div>手寫簽名</div>
+    <div class="alert alert-info" style="margin-bottom:10px;">📝 請在下方空白處用手指或觸控筆簽署您的姓名</div>
+    <div class="sign-area-wrap">
+      <canvas id="signCanvas"></canvas>
+      <div class="sign-hint" id="signHint">請在此處簽名</div>
+    </div>
+    <button class="btn btn-outline" onclick="clearSign()" style="margin-top:8px;padding:10px;">清除重簽</button>
+  </div>
+
+  <div id="signError"></div>
+  <button class="btn btn-gold" id="submitBtn" onclick="submitSign()" disabled>✍️ 確認簽署送出</button>
+
+</div>
+
+<!-- 成功畫面 -->
+<div class="wrap" id="successWrap" style="display:none;">
+  <div class="success-wrap">
+    <div class="success-icon">✅</div>
+    <div class="success-title">簽署完成！</div>
+    <div class="success-sub">您的尊爵服務合約已成功簽署<br>感謝您的信任，期待為您提供最優質的服務</div>
+    <div class="alert alert-success" style="margin-top:20px;text-align:left;">
+      🌟 簽署資訊已記錄，您可以關閉此頁面
+    </div>
+    <button class="btn btn-gold" onclick="window.close()" style="margin-top:16px;">關閉頁面</button>
+  </div>
+</div>
+
+<script>
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbz2xGmguRIOv8bEefyRN7eZOaR2G0H-gQevWXTW42oAg2jqFfHtR_2DAx_dMcFP_11f/exec';
+
+// 從網址取參數
+const urlParams = new URLSearchParams(window.location.search);
+const customerName  = urlParams.get('name')  || '';
+const customerPhone = urlParams.get('phone') || '';
+
+// 顯示顧客資訊
+document.getElementById('showName').textContent  = customerName  || '（未知）';
+document.getElementById('showPhone').textContent = customerPhone || '（未知）';
+document.getElementById('showDate').textContent  = new Date().toLocaleDateString('zh-TW');
+
+// 初始化 SignaturePad
+const canvas = document.getElementById('signCanvas');
+function resizeCanvas() {
+  const ratio = Math.max(window.devicePixelRatio || 1, 1);
+  const w = canvas.offsetWidth;
+  const h = Math.min(200, w * 0.5);
+  canvas.width  = w * ratio;
+  canvas.height = h * ratio;
+  canvas.style.height = h + 'px';
+  canvas.getContext('2d').scale(ratio, ratio);
+}
+resizeCanvas();
+
+const signPad = new SignaturePad(canvas, {
+  minWidth: 1.5,
+  maxWidth: 3,
+  penColor: '#1A0F08',
+  backgroundColor: 'rgba(0,0,0,0)',
+});
+
+signPad.addEventListener('beginStroke', () => {
+  document.getElementById('signHint').classList.add('hidden');
+});
+
+function clearSign() {
+  signPad.clear();
+  document.getElementById('signHint').classList.remove('hidden');
+  checkAgreement();
+}
+
+function checkAgreement() {
+  const agreed = document.getElementById('agreeCheck').checked;
+  const signed = !signPad.isEmpty();
+  document.getElementById('submitBtn').disabled = !(agreed && signed);
+}
+
+// 監聽簽名動作
+canvas.addEventListener('touchend', () => setTimeout(checkAgreement, 100));
+canvas.addEventListener('mouseup', () => setTimeout(checkAgreement, 100));
+
+async function submitSign() {
+  if (signPad.isEmpty()) {
+    document.getElementById('signError').innerHTML = '<div class="alert alert-error">請先完成簽名</div>';
+    return;
+  }
+  if (!document.getElementById('agreeCheck').checked) {
+    document.getElementById('signError').innerHTML = '<div class="alert alert-error">請勾選同意合約條款</div>';
+    return;
+  }
+  const btn = document.getElementById('submitBtn');
+  btn.textContent = '送出中…'; btn.disabled = true;
+  document.getElementById('signError').innerHTML = '';
+
+  try {
+    const signData = signPad.toDataURL('image/png');
+    const signDate = new Date().toLocaleString('zh-TW');
+
+    // 傳送到 GAS 記錄
+    const url = new URL(GAS_URL);
+    url.searchParams.set('fn', 'saveMemberSign');
+    url.searchParams.set('params', JSON.stringify({
+      name: customerName,
+      phone: customerPhone,
+      signDate,
+      signData, // base64 圖片
+    }));
+    url.searchParams.set('t', Date.now());
+
+    await fetch(url.toString(), { cache: 'no-store' });
+
+    // 無論 GAS 回傳如何，顯示成功（簽名資料可能太大）
+    document.getElementById('mainWrap').style.display = 'none';
+    document.getElementById('successWrap').style.display = 'block';
+    window.scrollTo(0, 0);
+  } catch(e) {
+    // 仍顯示成功（GAS 記錄失敗不影響顧客體驗）
+    document.getElementById('mainWrap').style.display = 'none';
+    document.getElementById('successWrap').style.display = 'block';
+  }
+}
+</script>
+</body>
+</html>

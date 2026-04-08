@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>UNI 髮型設計 · 尊爵會員中心</title>
+<style>
+:root {
+  --gold:#C9A84C; --gold-light:#E8D08A; --gold-pale:#FDF8F0;
+  --dark:#1A0F08; --dark2:#2C1810; --dark3:#3D2416;
+  --cream:#FDF8F0; --cream2:#F5EBD8;
+  --text:#1A0F08; --text2:#6B4C35; --border:#D4B896;
+  --green:#4A8A4A; --red:#C0392B;
+  --radius:16px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{min-height:100vh;background:var(--dark);font-family:-apple-system,'PingFang TC','Microsoft JhengHei',sans-serif;}
+
+/* 跑馬燈 */
+.marquee-bar{background:var(--dark2);border-bottom:2px solid var(--gold);padding:9px 0;overflow:hidden;display:none;}
+.marquee-bar.show{display:block;}
+.marquee-track{white-space:nowrap;display:inline-block;animation:mqRoll 30s linear infinite;}
+.marquee-track:hover{animation-play-state:paused;}
+@keyframes mqRoll{0%{transform:translateX(100vw)}100%{transform:translateX(-100%)}}
+.marquee-text{font-size:15px;font-weight:700;color:#fff;letter-spacing:.05em;padding:0 36px;}
+.marquee-sep{color:var(--gold-light);font-size:13px;opacity:.7;padding:0 6px;}
+
+/* Loading */
+#loading{position:fixed;inset:0;background:var(--dark);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;transition:opacity .5s;}
+.ld-logo{font-size:28px;font-weight:900;color:var(--gold);letter-spacing:4px;margin-bottom:8px;}
+.ld-sub{font-size:13px;color:var(--gold-light);opacity:.7;letter-spacing:2px;}
+.ld-bar{width:120px;height:2px;background:var(--dark3);border-radius:1px;margin-top:24px;overflow:hidden;}
+.ld-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--gold-light));border-radius:1px;animation:ldFill 1.8s ease-in-out infinite;}
+@keyframes ldFill{0%{width:0}50%{width:80%}100%{width:100%}}
+
+#app{display:none;min-height:100vh;background:var(--cream);}
+
+/* Header */
+.header{background:linear-gradient(160deg,var(--dark) 0%,var(--dark2) 60%,var(--dark3) 100%);padding:24px 20px 20px;text-align:center;position:relative;overflow:hidden;}
+.header::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,rgba(201,168,76,.15) 0%,transparent 70%);pointer-events:none;}
+.header-logo{font-size:11px;letter-spacing:5px;color:var(--gold);opacity:.8;text-transform:uppercase;margin-bottom:4px;}
+.header-title{font-size:24px;font-weight:900;color:#fff;letter-spacing:3px;}
+.header-title span{color:var(--gold);}
+.header-sub{font-size:11px;color:var(--gold-light);opacity:.7;margin-top:4px;letter-spacing:1px;}
+
+/* 內容區 */
+.wrap{max-width:500px;margin:0 auto;padding:16px;}
+
+/* Card */
+.card{background:#fff;border-radius:var(--radius);box-shadow:0 2px 16px rgba(0,0,0,.08);padding:18px;margin-bottom:12px;border:1px solid rgba(201,168,76,.15);}
+.card-title{font-size:13px;font-weight:800;color:var(--dark2);margin-bottom:14px;display:flex;align-items:center;gap:8px;letter-spacing:.5px;}
+.card-title .ct-line{width:3px;height:14px;background:var(--gold);border-radius:2px;}
+
+/* Input */
+input{width:100%;padding:13px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:15px;background:var(--cream);color:var(--text);font-family:inherit;transition:all .2s;}
+input:focus{outline:none;border-color:var(--gold);background:#fff;box-shadow:0 0 0 3px rgba(201,168,76,.12);}
+input[type=tel]{font-size:20px;font-weight:700;letter-spacing:2px;text-align:center;}
+label{display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px;}
+
+/* Button */
+.btn{padding:14px 20px;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;width:100%;margin-top:12px;letter-spacing:.5px;}
+.btn-gold{background:linear-gradient(135deg,#C9A84C,#E8D08A,#C9A84C);color:var(--dark);}
+.btn-gold:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(201,168,76,.4);}
+.btn-gold:active{transform:translateY(0);}
+.btn-outline{background:transparent;border:1.5px solid var(--gold);color:var(--dark);}
+.btn-dark{background:var(--dark);color:var(--gold);}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none!important;}
+
+/* Alert */
+.alert{border-radius:10px;padding:12px 14px;font-size:13px;margin-top:10px;line-height:1.5;}
+.alert-error{background:#FFF0EE;border:1px solid #FFCCC7;color:#A8352E;}
+.alert-info{background:#FFF8E8;border:1px solid var(--gold-light);color:var(--dark2);}
+.alert-success{background:#F0FFF4;border:1px solid #9AE6B4;color:#276749;}
+
+/* VIP card */
+.vip-card{background:linear-gradient(135deg,var(--dark) 0%,var(--dark2) 50%,var(--dark3) 100%);border-radius:var(--radius);padding:18px;margin-bottom:12px;position:relative;overflow:hidden;}
+.vip-card::before{content:'';position:absolute;top:-30px;right:-30px;width:100px;height:100px;border-radius:50%;background:radial-gradient(circle,rgba(201,168,76,.2) 0%,transparent 70%);}
+.vip-tag{display:inline-block;padding:3px 10px;border:1px solid var(--gold);border-radius:20px;font-size:10px;color:var(--gold);letter-spacing:1px;margin-bottom:8px;}
+.vip-name{font-size:22px;font-weight:900;color:#fff;letter-spacing:1px;}
+.vip-meta{margin-top:10px;display:flex;flex-wrap:wrap;gap:8px;}
+.vip-meta-item{font-size:11px;color:rgba(255,255,255,.65);display:flex;align-items:center;gap:4px;}
+.vip-meta-item strong{color:var(--gold-light);}
+
+/* 養護金餘額大卡 */
+.balance-card{background:linear-gradient(135deg,#2C1810,#3D2416);border-radius:14px;padding:20px;margin-bottom:12px;text-align:center;border:1px solid rgba(201,168,76,.3);}
+.balance-label{font-size:11px;color:rgba(255,255,255,.6);letter-spacing:2px;margin-bottom:4px;}
+.balance-amount{font-size:42px;font-weight:900;color:var(--gold);letter-spacing:2px;}
+.balance-sub{font-size:11px;color:rgba(255,255,255,.4);margin-top:4px;}
+
+/* 頁籤 */
+.tabs{display:flex;background:var(--dark2);border-bottom:none;}
+.tab-item{flex:1;padding:12px 8px;text-align:center;font-size:12px;color:rgba(255,255,255,.5);cursor:pointer;font-weight:600;letter-spacing:.5px;transition:all .2s;border-bottom:2px solid transparent;}
+.tab-item.active{color:var(--gold);border-bottom-color:var(--gold);}
+
+/* 時段格 */
+.time-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px;}
+.time-btn{border:1.5px solid var(--border);border-radius:10px;padding:12px 4px;text-align:center;font-size:13px;font-weight:700;cursor:pointer;background:var(--cream);color:var(--text);transition:all .18s;font-family:inherit;}
+.time-btn.selected{background:var(--dark);border-color:var(--gold);color:var(--gold);}
+.time-btn.booked{background:var(--cream2);color:var(--border);cursor:not-allowed;text-decoration:line-through;font-weight:400;}
+.time-btn:not(.booked):not(.selected):hover{border-color:var(--gold);background:rgba(201,168,76,.08);}
+
+/* 服務 */
+.svc-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:10px;}
+.svc-btn{border:1.5px solid var(--border);border-radius:10px;padding:12px 10px;cursor:pointer;background:var(--cream);transition:all .18s;text-align:left;font-family:inherit;}
+.svc-btn.selected{border-color:var(--gold);background:rgba(201,168,76,.08);}
+.svc-name{font-size:13px;font-weight:700;color:var(--text);}
+.svc-price{font-size:13px;font-weight:800;color:var(--dark2);margin-top:3px;}
+.svc-dur{font-size:11px;color:var(--text2);}
+.svc-btn.selected .svc-price{color:var(--gold);}
+
+/* Total bar */
+.total-bar{background:var(--dark);border-radius:12px;padding:14px 16px;display:none;justify-content:space-between;align-items:center;margin-top:12px;}
+.total-bar.show{display:flex;}
+.total-label{font-size:12px;color:rgba(255,255,255,.65);}
+.total-label small{display:block;font-size:11px;color:var(--gold-light);opacity:.7;}
+.total-price{font-size:24px;font-weight:900;color:var(--gold);}
+
+/* textarea */
+textarea{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;background:var(--cream);color:var(--text);font-family:inherit;resize:vertical;min-height:70px;transition:all .2s;}
+textarea:focus{outline:none;border-color:var(--gold);background:#fff;box-shadow:0 0 0 3px rgba(201,168,76,.12);}
+
+/* 付款方式 */
+.pay-grid{display:flex;flex-direction:column;gap:8px;margin-top:10px;}
+.pay-btn{border:1.5px solid var(--border);border-radius:10px;padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;background:var(--cream);transition:all .18s;font-family:inherit;width:100%;}
+.pay-btn:hover{border-color:var(--gold);background:rgba(201,168,76,.05);}
+.pay-btn-icon{font-size:22px;}
+.pay-btn-name{font-size:14px;font-weight:700;color:var(--text);}
+.pay-btn-sub{font-size:11px;color:var(--text2);margin-top:2px;}
+
+/* Confirm */
+.confirm-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--cream2);font-size:13px;}
+.confirm-row:last-of-type{border-bottom:none;}
+.confirm-label{color:var(--text2);}
+.confirm-value{font-weight:700;color:var(--text);text-align:right;max-width:60%;}
+
+/* Success */
+.success-wrap{text-align:center;padding:30px 20px;}
+.success-icon{font-size:56px;margin-bottom:14px;animation:bounceIn .6s;}
+@keyframes bounceIn{0%{transform:scale(0)}60%{transform:scale(1.1)}100%{transform:scale(1)}}
+.success-title{font-size:20px;font-weight:900;color:var(--dark);letter-spacing:1px;}
+.success-sub{font-size:13px;color:var(--text2);margin-top:6px;line-height:1.6;}
+.success-card{background:linear-gradient(135deg,var(--dark),var(--dark2));border-radius:var(--radius);padding:18px;margin:18px 0;text-align:left;}
+.success-card .sc-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.07);font-size:13px;}
+.success-card .sc-row:last-child{border-bottom:none;}
+.success-card .sc-label{color:rgba(255,255,255,.55);}
+.success-card .sc-value{color:var(--gold-light);font-weight:600;}
+
+/* Skeleton */
+.skeleton{background:linear-gradient(90deg,var(--cream2) 25%,var(--cream) 50%,var(--cream2) 75%);background-size:200%;animation:shimmer 1.5s infinite;border-radius:8px;height:44px;}
+@keyframes shimmer{0%{background-position:200%}100%{background-position:-200%}}
+
+.nav-back{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text2);cursor:pointer;margin-bottom:12px;font-weight:600;}
+.nav-back span{font-size:18px;}
+
+/* 步驟列 */
+.steps{display:flex;justify-content:center;gap:0;padding:12px 20px;background:var(--dark2);}
+.step{display:flex;flex-direction:column;align-items:center;flex:1;max-width:70px;opacity:.4;transition:opacity .3s;}
+.step.active{opacity:1;}
+.step.done{opacity:.7;}
+.step-num{width:26px;height:26px;border-radius:50%;border:1.5px solid var(--gold);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--gold);}
+.step.active .step-num{background:var(--gold);color:var(--dark);}
+.step.done .step-num{background:var(--green);border-color:var(--green);color:#fff;font-size:14px;}
+.step-label{font-size:9px;color:var(--gold-light);margin-top:4px;letter-spacing:.5px;text-align:center;}
+.step-line{flex:1;height:1px;background:var(--gold);opacity:.3;margin:13px -8px 0;max-width:20px;}
+
+/* 明細表 */
+.history-row{display:flex;justify-content:space-between;align-items:flex-start;padding:12px 0;border-bottom:1px solid var(--cream2);font-size:13px;}
+.history-row:last-child{border-bottom:none;}
+.history-date{color:var(--text2);font-size:11px;margin-top:2px;}
+.history-amt{font-weight:800;font-size:16px;}
+.history-amt.pos{color:var(--green);}
+.history-amt.neg{color:var(--red);}
+
+/* 付款資訊彈窗 */
+.pay-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;align-items:flex-end;justify-content:center;}
+.pay-modal-overlay.show{display:flex;}
+.pay-modal{background:#fff;border-radius:20px 20px 0 0;padding:24px 20px 40px;width:100%;max-width:500px;animation:slideUp .3s;}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.pay-modal-title{font-size:16px;font-weight:800;color:var(--dark);margin-bottom:16px;text-align:center;}
+.pay-info-box{background:var(--cream);border:1.5px solid var(--border);border-radius:12px;padding:16px;font-size:14px;line-height:1.8;word-break:break-all;text-align:center;}
+.pay-qr-area{text-align:center;padding:20px 0;}
+.pay-close{background:var(--dark);color:#fff;border:none;border-radius:10px;padding:14px;width:100%;font-size:14px;font-weight:700;cursor:pointer;margin-top:14px;font-family:inherit;}
+
+/* 簽約區 */
+.sign-link-card{background:linear-gradient(135deg,var(--dark),var(--dark2));border-radius:14px;padding:18px;text-align:center;}
+.sign-link-title{font-size:13px;color:rgba(255,255,255,.7);margin-bottom:6px;}
+.sign-link-desc{font-size:12px;color:rgba(255,255,255,.5);margin-bottom:14px;line-height:1.6;}
+</style>
+</head>
+<body>
+
+<!-- Loading -->
+<div id="loading">
+  <div class="ld-logo">UNI</div>
+  <div class="ld-sub">MEMBER CENTER · ELSA</div>
+  <div class="ld-bar"><div class="ld-fill"></div></div>
+</div>
+
+<!-- App -->
+<div id="app">
+
+  <!-- 跑馬燈 -->
+  <div class="marquee-bar" id="marqueeBar">
+    <div class="marquee-track" id="marqueeTrack">
+      <span class="marquee-text" id="marqueeText"></span>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-logo">UNI Hair Design</div>
+    <div class="header-title">尊<span>爵</span>會員中心</div>
+    <div class="header-sub">✦ 養護金 · 優先預約 · 專屬服務 ✦</div>
+  </div>
+
+  <!-- ===== 登入頁 ===== -->
+  <div id="pageLogin">
+    <div class="wrap">
+      <div style="height:6px"></div>
+      <div class="card">
+        <div class="card-title"><div class="ct-line"></div>輸入您的手機號碼</div>
+        <label>手機號碼</label>
+        <input type="tel" id="phoneInput" placeholder="09xxxxxxxx" maxlength="10" inputmode="numeric" autocomplete="tel">
+        <div id="loginError"></div>
+        <button class="btn btn-gold" id="loginBtn" onclick="doLogin()">確認身份 →</button>
+      </div>
+      <div class="alert alert-info">🔐 本頁面為尊爵購物會員專屬。<br>請輸入您的登記手機號碼。</div>
+    </div>
+  </div>
+
+  <!-- ===== 會員主頁 ===== -->
+  <div id="pageMember" style="display:none;">
+
+    <!-- 頁籤 -->
+    <div class="tabs">
+      <div class="tab-item active" id="tabBalance" onclick="switchTab('balance')">💰 養護金</div>
+      <div class="tab-item" id="tabBook" onclick="switchTab('book')">📅 尊爵預約</div>
+      <div class="tab-item" id="tabSign" onclick="switchTab('sign')">✍️ 簽署合約</div>
+      <div class="tab-item" id="tabPay" onclick="switchTab('pay')">💳 付款方式</div>
+    </div>
+
+    <!-- 養護金頁籤 -->
+    <div id="tabPane-balance" class="wrap">
+      <div class="vip-card" id="vipCard"></div>
+      <div class="balance-card">
+        <div class="balance-label">養護金餘額</div>
+        <div class="balance-amount">$<span id="balanceAmt">—</span></div>
+        <div class="balance-sub" id="balanceSub"></div>
+      </div>
+      <div class="card">
+        <div class="card-title"><div class="ct-line"></div>儲值明細</div>
+        <div id="creditHistory"><div style="text-align:center;padding:20px;color:var(--text2);font-size:13px;">載入中…</div></div>
+      </div>
+    </div>
+
+    <!-- 預約頁籤 -->
+    <div id="tabPane-book" class="wrap" style="display:none;">
+
+      <!-- 步驟列 -->
+      <div class="steps" style="margin:0 -16px;padding:12px 16px;">
+        <div class="step active" id="bstep1"><div class="step-num">1</div><div class="step-label">日期時段</div></div>
+        <div class="step-line"></div>
+        <div class="step" id="bstep2"><div class="step-num">2</div><div class="step-label">服務項目</div></div>
+        <div class="step-line"></div>
+        <div class="step" id="bstep3"><div class="step-num">3</div><div class="step-label">確認預約</div></div>
+      </div>
+
+      <!-- 步驟1：日期時段 -->
+      <div id="bpanel1">
+        <div style="height:8px"></div>
+        <div class="card">
+          <div class="card-title"><div class="ct-line"></div>選擇預約日期</div>
+          <input type="date" id="dateInput" onchange="loadSlots()">
+        </div>
+        <div class="card" id="slotCard" style="display:none;">
+          <div class="card-title"><div class="ct-line"></div>選擇時段（尊爵優先包場）</div>
+          <div class="time-grid" id="timeGrid"></div>
+        </div>
+        <button class="btn btn-gold" id="nextToSvc" style="display:none;" onclick="goBookStep(2)">選擇服務項目 →</button>
+      </div>
+
+      <!-- 步驟2：服務 -->
+      <div id="bpanel2" style="display:none;">
+        <div style="height:8px"></div>
+        <div class="nav-back" onclick="goBookStep(1)"><span>‹</span> 返回</div>
+        <div class="card">
+          <div class="card-title"><div class="ct-line"></div>選擇服務項目</div>
+          <div class="svc-grid" id="svcGrid"></div>
+          <div class="total-bar" id="totalBar">
+            <div><div class="total-label">預估費用<small id="durLabel"></small></div></div>
+            <div class="total-price" id="totalPrice">$0</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title"><div class="ct-line"></div>特殊備註（選填）</div>
+          <textarea id="noteInput" placeholder="例如：想保留些許蓬鬆感、上次頭皮有點刺激…"></textarea>
+        </div>
+        <button class="btn btn-gold" onclick="goConfirm()">預覽確認 →</button>
+      </div>
+
+      <!-- 步驟3：確認 -->
+      <div id="bpanel3" style="display:none;">
+        <div style="height:8px"></div>
+        <div class="nav-back" onclick="goBookStep(2)"><span>‹</span> 修改</div>
+        <div class="card">
+          <div class="card-title"><div class="ct-line"></div>預約確認</div>
+          <div id="confirmSummary"></div>
+        </div>
+        <div id="submitError"></div>
+        <button class="btn btn-gold" id="submitBtn" onclick="doSubmit()">✅ 確定送出預約</button>
+        <button class="btn btn-outline" style="margin-top:8px;" onclick="goBookStep(1)">重新選擇</button>
+      </div>
+
+      <!-- 成功 -->
+      <div id="bpanelSuccess" style="display:none;">
+        <div class="success-wrap">
+          <div class="success-icon">🌟</div>
+          <div class="success-title">預約成功！</div>
+          <div class="success-sub">ELSA 已收到您的尊爵預約<br>期待在預約時間為您服務</div>
+          <div class="success-card" id="successDetail"></div>
+          <div class="alert alert-info">📌 如需更改或取消，請直接透過 LINE 聯繫 ELSA</div>
+          <button class="btn btn-gold" onclick="resetBook()" style="margin-top:14px;">再次預約</button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 簽署合約頁籤 -->
+    <div id="tabPane-sign" class="wrap" style="display:none;">
+      <div style="height:8px"></div>
+      <div class="card">
+        <div class="card-title"><div class="ct-line"></div>尊爵服務合約簽署</div>
+        <div class="sign-link-card">
+          <div class="sign-link-title">✍️ 線上簽署合約</div>
+          <div class="sign-link-desc">點擊下方按鈕開啟專屬簽署頁面<br>完成簽名後系統自動記錄</div>
+          <button class="btn btn-gold" onclick="openSignPage()" style="margin-top:0;">開啟簽署頁面</button>
+        </div>
+      </div>
+      <div class="alert alert-info">💡 簽署合約代表您同意 UNI 髮型設計的尊爵服務條款，包含預約規範、費用說明及退費政策。</div>
+    </div>
+
+    <!-- 付款方式頁籤 -->
+    <div id="tabPane-pay" class="wrap" style="display:none;">
+      <div style="height:8px"></div>
+      <div class="card">
+        <div class="card-title"><div class="ct-line"></div>付款方式</div>
+        <div class="pay-grid" id="payGrid">
+          <div style="text-align:center;padding:20px;color:var(--text2);font-size:13px;">載入中…</div>
+        </div>
+      </div>
+      <div class="alert alert-info">💡 請依照選擇的付款方式完成付款後，告知 ELSA 確認。</div>
+    </div>
+
+  </div>
+
+</div><!-- #app -->
+
+<!-- 付款資訊彈窗 -->
+<div class="pay-modal-overlay" id="payModalOverlay" onclick="closePayModal(event)">
+  <div class="pay-modal" id="payModalBox">
+    <div class="pay-modal-title" id="payModalTitle">付款資訊</div>
+    <div class="pay-info-box" id="payModalInfo"></div>
+    <button class="pay-close" onclick="closePayInfoModal()">關閉</button>
+  </div>
+</div>
+
+<script>
+// =============================================
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbz2xGmguRIOv8bEefyRN7eZOaR2G0H-gQevWXTW42oAg2jqFfHtR_2DAx_dMcFP_11f/exec';
+// 主 GAS（養護金、預約用同一個）
+const GAS_MAIN = GAS_URL;
+// =============================================
+
+const state = {
+  customer: null,
+  services: [],
+  selectedDate: '',
+  selectedTime: '',
+  selectedServices: [],
+  creditBalance: 0,
+  payMethods: [],
+};
+
+// ===== GAS 呼叫 =====
+async function callGAS(fn, params = {}) {
+  const url = new URL(GAS_URL);
+  url.searchParams.set('fn', fn);
+  url.searchParams.set('params', JSON.stringify(params));
+  url.searchParams.set('t', Date.now());
+  const res = await fetch(url.toString(), { cache: 'no-store' });
+  return res.json();
+}
+
+// 呼叫主 GAS（養護金系統）用 POST
+async function callMainGAS(params) {
+  const res = await fetch(GAS_MAIN, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams(params).toString()
+  });
+  return res.json();
+}
+
+// 呼叫主 GAS GET
+async function callMainGASGet(params) {
+  const url = new URL(GAS_MAIN);
+  Object.entries(params).forEach(([k,v]) => url.searchParams.set(k, v));
+  url.searchParams.set('t', Date.now());
+  const res = await fetch(url.toString(), { cache: 'no-store' });
+  return res.json();
+}
+
+// ===== 初始化 =====
+window.addEventListener('load', async () => {
+  // 載入服務項目
+  try {
+    const res = await callGAS('getServices');
+    if (res.success) state.services = res.services;
+  } catch(e) {}
+
+  // 載入跑馬燈
+  loadMarquee();
+
+  // 日期預設今天
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('dateInput').value = today;
+  document.getElementById('dateInput').min = today;
+
+  setTimeout(() => {
+    document.getElementById('loading').style.opacity = '0';
+    setTimeout(() => {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+    }, 500);
+  }, 1400);
+});
+
+// ===== 跑馬燈 =====
+async function loadMarquee() {
+  try {
+    // 使用主 GAS 讀取 member 站跑馬燈
+    const r = await callMainGASGet({ action: 'getMarquees', site: 'member', enabledOnly: 'true' });
+    if (!r.ok || !r.marquees || !r.marquees.length) return;
+    const texts = r.marquees
+      .filter(m => m.content && m.content.trim())
+      .sort((a,b) => a.order - b.order)
+      .map(m => m.content.trim());
+    if (!texts.length) return;
+    const combined = texts.join('　　✦　　');
+    document.getElementById('marqueeText').textContent = combined + '　　✦　　' + combined;
+    document.getElementById('marqueeBar').classList.add('show');
+  } catch(e) {}
+}
+
+// ===== 登入 =====
+document.getElementById('phoneInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doLogin();
+});
+
+async function doLogin() {
+  const phone = document.getElementById('phoneInput').value.trim();
+  const errDiv = document.getElementById('loginError');
+  errDiv.innerHTML = '';
+  if (phone.length < 10) {
+    errDiv.innerHTML = '<div class="alert alert-error">請輸入完整10碼手機號碼</div>';
+    return;
+  }
+  const btn = document.getElementById('loginBtn');
+  btn.textContent = '查詢中…'; btn.disabled = true;
+  try {
+    const res = await callGAS('getCustomerByPhone', { phone });
+    if (res.success) {
+      state.customer = res.customer;
+      await loadMemberData();
+      document.getElementById('pageLogin').style.display = 'none';
+      document.getElementById('pageMember').style.display = 'block';
+    } else {
+      errDiv.innerHTML = `<div class="alert alert-error">⚠️ ${res.message}</div>`;
+    }
+  } catch(e) {
+    errDiv.innerHTML = '<div class="alert alert-error">連線錯誤，請稍後再試</div>';
+  } finally {
+    btn.textContent = '確認身份 →'; btn.disabled = false;
+  }
+}
+
+// ===== 載入會員資料 =====
+async function loadMemberData() {
+  renderVipCard();
+  await Promise.all([loadBalance(), loadPayMethods()]);
+}
+
+// 渲染 VIP 卡
+function renderVipCard() {
+  const c = state.customer;
+  document.getElementById('vipCard').innerHTML = `
+    <div class="vip-tag">${c.memberLevel || '尊爵會員'}</div>
+    <div class="vip-name">${c.name}</div>
+    <div class="vip-meta">
+      <div class="vip-meta-item">✂️ 到訪 <strong>${c.visitCount} 次</strong></div>
+      <div class="vip-meta-item">💰 累計 <strong>$${(c.totalSpend||0).toLocaleString()}</strong></div>
+      ${c.lastVisit ? `<div class="vip-meta-item">🕐 上次 <strong>${c.lastVisit}</strong></div>` : ''}
+    </div>
+    ${c.hairNote ? `<div style="margin-top:10px;background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.25);border-radius:8px;padding:10px 12px;font-size:12px;color:rgba(255,255,255,.75);line-height:1.6;"><div style="color:var(--gold);font-size:10px;font-weight:700;letter-spacing:1px;margin-bottom:4px;">💆 髮質備註</div>${c.hairNote}</div>` : ''}
+  `;
+}
+
+// 載入養護金餘額
+async function loadBalance() {
+  try {
+    const res = await callMainGASGet({ action: 'listCredits', phone: state.customer.phone });
+    // 計算餘額（每筆有「餘額」欄）
+    let balance = 0;
+    if (res.ok && res.data && res.data.length) {
+      // 取最後一筆的累計餘額
+      balance = res.data.reduce((s, r) => s + Number(r['餘額'] || 0), 0);
+    }
+    state.creditBalance = balance;
+    document.getElementById('balanceAmt').textContent = balance.toLocaleString();
+    document.getElementById('balanceSub').textContent = balance > 0 ? '✨ 可用於消費折抵' : '如需儲值請聯繫 ELSA';
+    renderCreditHistory(res.ok ? (res.data || []) : []);
+  } catch(e) {
+    document.getElementById('balanceAmt').textContent = '—';
+    renderCreditHistory([]);
+  }
+}
+
+function renderCreditHistory(rows) {
+  const el = document.getElementById('creditHistory');
+  if (!rows.length) { el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text2);font-size:13px;">尚無儲值記錄</div>'; return; }
+  el.innerHTML = rows.slice().reverse().map(r => {
+    const amt = Number(r['儲值金額'] || 0);
+    const bonus = Number(r['贈送金額'] || 0);
+    const bal = Number(r['餘額'] || 0);
+    return `<div class="history-row">
+      <div>
+        <div style="font-weight:700;color:var(--text);">${r['支付方式'] || '—'}${r['備註'] ? '・' + r['備註'] : ''}</div>
+        <div class="history-date">${(r['建立時間'] || '').substring(0,16)}</div>
+      </div>
+      <div style="text-align:right;">
+        <div class="history-amt ${amt >= 0 ? 'pos' : 'neg'}">$${amt.toLocaleString()}${bonus > 0 ? ' +$' + bonus.toLocaleString() : ''}</div>
+        <div style="font-size:11px;color:var(--text2);">餘額 $${bal.toLocaleString()}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// 載入付款方式
+async function loadPayMethods() {
+  try {
+    const res = await callMainGASGet({ action: 'getPayMethods' });
+    state.payMethods = (res.ok && res.methods) ? res.methods.filter(m => m.enabled) : [];
+    renderPayGrid();
+  } catch(e) {
+    state.payMethods = defaultPayMethods();
+    renderPayGrid();
+  }
+}
+
+function defaultPayMethods() {
+  return [
+    { id:'jko', name:'街口支付', icon:'🟡', color:'#e03c3c', info:'', enabled:true },
+    { id:'transfer', name:'銀行轉帳', icon:'🏦', color:'#2980b9', info:'', enabled:true },
+    { id:'ipass', name:'iPASS 一卡通', icon:'🔵', color:'#0066cc', info:'', enabled:true },
+  ];
+}
+
+function renderPayGrid() {
+  const grid = document.getElementById('payGrid');
+  if (!state.payMethods.length) {
+    grid.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text2);font-size:13px;">請聯繫 ELSA 確認付款方式</div>';
+    return;
+  }
+  grid.innerHTML = state.payMethods.map(m => `
+    <button class="pay-btn" onclick="showPayInfo('${m.id}','${encodeURIComponent(m.name)}','${encodeURIComponent(m.info||'')}','${m.icon}')">
+      <div class="pay-btn-icon">${m.icon}</div>
+      <div style="flex:1;text-align:left;">
+        <div class="pay-btn-name">${m.name}</div>
+        <div class="pay-btn-sub">${m.info && m.info.startsWith('http') ? '點擊前往付款頁面' : m.info ? '點擊查看付款資訊' : '點擊查看'}</div>
+      </div>
+      <div style="font-size:18px;color:var(--border);">›</div>
+    </button>
+  `).join('');
+}
+
+function showPayInfo(id, nameEnc, infoEnc, icon) {
+  const name = decodeURIComponent(nameEnc);
+  const info = decodeURIComponent(infoEnc);
+  document.getElementById('payModalTitle').textContent = icon + ' ' + name;
+  if (info && info.startsWith('http')) {
+    document.getElementById('payModalInfo').innerHTML = `<a href="${info}" target="_blank" style="color:#2980b9;font-size:14px;font-weight:700;">點擊前往付款頁面 →</a>`;
+  } else {
+    document.getElementById('payModalInfo').innerHTML = info
+      ? `<div style="font-size:14px;line-height:2;color:var(--dark);">${info.replace(/\n/g,'<br>')}</div>`
+      : '<div style="color:var(--text2);">請直接聯繫 ELSA 確認</div>';
+  }
+  document.getElementById('payModalOverlay').classList.add('show');
+}
+
+function closePayInfoModal() {
+  document.getElementById('payModalOverlay').classList.remove('show');
+}
+function closePayModal(e) {
+  if (e.target === document.getElementById('payModalOverlay')) closePayInfoModal();
+}
+
+// ===== 頁籤切換 =====
+function switchTab(tab) {
+  ['balance','book','sign','pay'].forEach(t => {
+    document.getElementById('tab-'+t) && document.getElementById('tab-'+t).classList.remove('active');
+    document.getElementById('tabItem-'+t) && document.getElementById('tabItem-'+t).classList.remove('active');
+    document.getElementById('tabPane-'+t).style.display = 'none';
+    document.getElementById('tab'+t.charAt(0).toUpperCase()+t.slice(1)).classList.remove('active');
+  });
+  document.getElementById('tabPane-'+tab).style.display = 'block';
+  document.getElementById('tab'+tab.charAt(0).toUpperCase()+tab.slice(1)).classList.add('active');
+}
+
+// ===== 預約流程 =====
+function goBookStep(n) {
+  [1,2,3].forEach(i => {
+    document.getElementById('bpanel'+i).style.display = i===n ? 'block' : 'none';
+    const el = document.getElementById('bstep'+i);
+    el.classList.remove('active','done');
+    if (i < n) el.classList.add('done');
+    else if (i === n) el.classList.add('active');
+  });
+  document.getElementById('bpanelSuccess').style.display = 'none';
+  window.scrollTo(0, 0);
+}
+
+async function loadSlots() {
+  const date = document.getElementById('dateInput').value;
+  if (!date) return;
+  state.selectedDate = date;
+  state.selectedTime = '';
+  document.getElementById('nextToSvc').style.display = 'none';
+  const slotCard = document.getElementById('slotCard');
+  const grid = document.getElementById('timeGrid');
+  slotCard.style.display = 'block';
+  grid.innerHTML = '<div class="skeleton" style="grid-column:1/-1;"></div>';
+  try {
+    const res = await callGAS('getAvailableSlots', { dateStr: date });
+    if (res.success) {
+      grid.innerHTML = res.slots.map(s => `
+        <button class="time-btn ${!s.available ? 'booked' : ''} ${state.selectedTime===s.time ? 'selected' : ''}"
+          onclick="${s.available ? `selectTime('${s.time}')` : ''}">
+          ${s.time}${!s.available ? '<br><small style="font-size:9px;">已約</small>' : ''}
+        </button>`).join('');
+      if (state.selectedTime) document.getElementById('nextToSvc').style.display = 'block';
+    }
+  } catch(e) {
+    grid.innerHTML = '<div class="alert alert-error" style="grid-column:1/-1;">無法載入時段，請重試</div>';
+  }
+}
+
+function selectTime(t) {
+  state.selectedTime = t;
+  loadSlots();
+  document.getElementById('nextToSvc').style.display = 'block';
+}
+
+function renderServices() {
+  const grid = document.getElementById('svcGrid');
+  if (!state.services.length) { grid.innerHTML = '<div class="alert alert-info" style="grid-column:1/-1;">載入服務中…</div>'; return; }
+  grid.innerHTML = state.services.map(s => `
+    <button class="svc-btn ${state.selectedServices.includes(s.id) ? 'selected' : ''}" onclick="toggleSvc('${s.id}')">
+      <div class="svc-name">${s.name}</div>
+      <div class="svc-price">$${Number(s.price).toLocaleString()}</div>
+      <div class="svc-dur">約 ${s.duration} 分鐘</div>
+    </button>`).join('');
+  updateTotal();
+}
+
+function toggleSvc(id) {
+  const idx = state.selectedServices.indexOf(id);
+  if (idx >= 0) state.selectedServices.splice(idx, 1);
+  else state.selectedServices.push(id);
+  renderServices();
+}
+
+function updateTotal() {
+  const sel = state.services.filter(s => state.selectedServices.includes(s.id));
+  const total = sel.reduce((s,x) => s+x.price, 0);
+  const dur   = sel.reduce((s,x) => s+x.duration, 0);
+  const bar = document.getElementById('totalBar');
+  if (sel.length) {
+    bar.classList.add('show');
+    document.getElementById('totalPrice').textContent = '$' + total.toLocaleString();
+    document.getElementById('durLabel').textContent = '預估約 '+dur+' 分鐘';
+  } else { bar.classList.remove('show'); }
+}
+
+// 覆寫 goBookStep 在進入步驟2時渲染服務
+const _origGoBookStep = goBookStep;
+function goBookStep(n) {
+  [1,2,3].forEach(i => {
+    document.getElementById('bpanel'+i).style.display = i===n ? 'block' : 'none';
+    const el = document.getElementById('bstep'+i);
+    el.classList.remove('active','done');
+    if (i < n) el.classList.add('done');
+    else if (i === n) el.classList.add('active');
+  });
+  document.getElementById('bpanelSuccess').style.display = 'none';
+  if (n === 2) renderServices();
+  window.scrollTo(0, 0);
+}
+
+function goConfirm() {
+  if (!state.selectedServices.length) { alert('請至少選擇一項服務'); return; }
+  const sel = state.services.filter(s => state.selectedServices.includes(s.id));
+  const total = sel.reduce((s,x) => s+x.price, 0);
+  const dur   = sel.reduce((s,x) => s+x.duration, 0);
+  const note  = document.getElementById('noteInput').value;
+  document.getElementById('confirmSummary').innerHTML = `
+    <div class="confirm-row"><span class="confirm-label">👤 顧客</span><span class="confirm-value">${state.customer.name}（${state.customer.memberLevel||'尊爵'}）</span></div>
+    <div class="confirm-row"><span class="confirm-label">📅 日期</span><span class="confirm-value">${state.selectedDate}</span></div>
+    <div class="confirm-row"><span class="confirm-label">⏰ 時段</span><span class="confirm-value">${state.selectedTime}</span></div>
+    <div class="confirm-row"><span class="confirm-label">✂️ 服務</span><span class="confirm-value">${sel.map(s=>s.name).join('<br>')}</span></div>
+    <div class="confirm-row"><span class="confirm-label">⏱ 預估時間</span><span class="confirm-value">約 ${dur} 分鐘</span></div>
+    <div class="confirm-row"><span class="confirm-label">💰 費用</span><span class="confirm-value" style="font-size:20px;color:#C9A84C;">$${total.toLocaleString()}</span></div>
+    ${note ? `<div class="confirm-row"><span class="confirm-label">📝 備註</span><span class="confirm-value">${note}</span></div>` : ''}
+  `;
+  goBookStep(3);
+}
+
+async function doSubmit() {
+  const btn = document.getElementById('submitBtn');
+  const errDiv = document.getElementById('submitError');
+  errDiv.innerHTML = '';
+  btn.textContent = '送出中…'; btn.disabled = true;
+  const sel = state.services.filter(s => state.selectedServices.includes(s.id));
+  const total = sel.reduce((s,x) => s+x.price, 0);
+  const payload = {
+    customerId: state.customer.id,
+    customerName: state.customer.name,
+    customerPhone: state.customer.phone,
+    memberLevel: state.customer.memberLevel || '',
+    lineUserId: state.customer.lineUserId || '',
+    date: state.selectedDate,
+    time: state.selectedTime,
+    services: sel.map(s => s.name),
+    totalPrice: total,
+    note: document.getElementById('noteInput').value,
+  };
+  try {
+    const res = await callGAS('submitBooking', payload);
+    if (res.success) {
+      [1,2,3].forEach(i => document.getElementById('bpanel'+i).style.display = 'none');
+      document.getElementById('bpanelSuccess').style.display = 'block';
+      [1,2,3].forEach(i => document.getElementById('bstep'+i).classList.add('done'));
+      document.getElementById('successDetail').innerHTML = `
+        <div class="sc-row"><span class="sc-label">預約編號</span><span class="sc-value">${res.appointmentId}</span></div>
+        <div class="sc-row"><span class="sc-label">日期時段</span><span class="sc-value">${payload.date}  ${payload.time}</span></div>
+        <div class="sc-row"><span class="sc-label">服務項目</span><span class="sc-value">${payload.services.join('、')}</span></div>
+        <div class="sc-row"><span class="sc-label">預估費用</span><span class="sc-value" style="color:#E8D08A;font-size:18px;">$${payload.totalPrice.toLocaleString()}</span></div>
+      `;
+      window.scrollTo(0,0);
+    } else {
+      errDiv.innerHTML = `<div class="alert alert-error">⚠️ ${res.message}</div>`;
+    }
+  } catch(e) {
+    errDiv.innerHTML = '<div class="alert alert-error">連線失敗，請稍後再試或直接聯繫 ELSA</div>';
+  } finally {
+    btn.textContent = '✅ 確定送出預約'; btn.disabled = false;
+  }
+}
+
+function resetBook() {
+  state.selectedDate = '';
+  state.selectedTime = '';
+  state.selectedServices = [];
+  document.getElementById('noteInput').value = '';
+  document.getElementById('slotCard').style.display = 'none';
+  document.getElementById('nextToSvc').style.display = 'none';
+  document.getElementById('bpanelSuccess').style.display = 'none';
+  goBookStep(1);
+}
+
+// ===== 簽署頁面 =====
+function openSignPage() {
+  const c = state.customer;
+  const url = 'https://san555483-hub.github.io/member-sign.html?name=' +
+    encodeURIComponent(c.name) + '&phone=' + encodeURIComponent(c.phone);
+  window.open(url, '_blank');
+}
+</script>
+</body>
+</html>
