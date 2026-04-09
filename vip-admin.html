@@ -1,0 +1,1195 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UNI 尊爵系統 · 管理後台</title>
+<style>
+:root {
+  --gold: #C9A84C;
+  --gold-light: #E8D08A;
+  --dark: #1A0F08;
+  --dark2: #2C1810;
+  --dark3: #3D2416;
+  --cream: #FDF8F0;
+  --cream2: #F5EBD8;
+  --text: #1A0F08;
+  --text2: #6B4C35;
+  --border: #D4B896;
+  --success: #4A8A4A;
+  --danger: #C0392B;
+  --info: #2980b9;
+  --radius: 12px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system,'PingFang TC','Microsoft JhengHei',sans-serif; background: #f0ebe3; min-height: 100vh; }
+
+/* ===== HEADER ===== */
+.header {
+  background: linear-gradient(160deg, var(--dark) 0%, var(--dark2) 60%, var(--dark3) 100%);
+  padding: 16px 20px; display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+}
+.header-logo { font-size: 10px; letter-spacing: 4px; color: var(--gold); text-transform: uppercase; }
+.header-title { font-size: 18px; font-weight: 900; color: white; letter-spacing: 2px; }
+.header-title span { color: var(--gold); }
+.header-badge { font-size: 10px; background: var(--gold); color: var(--dark); padding: 3px 8px; border-radius: 20px; font-weight: 700; }
+
+/* ===== NAV TABS ===== */
+.nav-wrap { background: var(--dark2); overflow-x: auto; white-space: nowrap; padding: 0 4px; border-bottom: 1px solid rgba(201,168,76,0.2); }
+.nav-wrap::-webkit-scrollbar { height: 3px; }
+.nav-wrap::-webkit-scrollbar-thumb { background: var(--gold); }
+.nav-tab {
+  display: inline-block; padding: 12px 16px; font-size: 12px; font-weight: 700;
+  color: rgba(255,255,255,0.5); cursor: pointer; border-bottom: 2px solid transparent;
+  transition: all 0.2s; letter-spacing: 0.5px;
+}
+.nav-tab.active { color: var(--gold); border-bottom-color: var(--gold); }
+.nav-tab:hover:not(.active) { color: rgba(255,255,255,0.8); }
+
+/* ===== CONTENT ===== */
+.content { max-width: 700px; margin: 0 auto; padding: 16px; }
+.section { display: none; }
+.section.active { display: block; }
+
+/* ===== CARD ===== */
+.card { background: white; border-radius: var(--radius); box-shadow: 0 2px 12px rgba(0,0,0,0.06); padding: 18px; margin-bottom: 14px; border: 1px solid rgba(201,168,76,0.12); }
+.card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.card-title { font-size: 13px; font-weight: 800; color: var(--dark2); display: flex; align-items: center; gap: 8px; }
+.card-title .line { width: 3px; height: 14px; background: var(--gold); border-radius: 2px; }
+
+/* ===== FORM ===== */
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.form-grid.col3 { grid-template-columns: 1fr 1fr 1fr; }
+.form-full { grid-column: 1 / -1; }
+label { display: block; font-size: 11px; font-weight: 600; color: var(--text2); margin-bottom: 5px; }
+input, select, textarea {
+  width: 100%; padding: 10px 12px; border: 1.5px solid var(--border);
+  border-radius: 8px; font-size: 14px; background: var(--cream);
+  color: var(--text); font-family: inherit; transition: all 0.2s;
+}
+input:focus, select:focus, textarea:focus {
+  outline: none; border-color: var(--gold); background: white;
+  box-shadow: 0 0 0 3px rgba(201,168,76,0.12);
+}
+textarea { min-height: 70px; resize: vertical; }
+
+/* ===== BUTTON ===== */
+.btn { padding: 10px 16px; border: none; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; transition: all 0.18s; letter-spacing: 0.3px; }
+.btn-gold { background: linear-gradient(135deg, #C9A84C, #E8D08A, #C9A84C); color: var(--dark); }
+.btn-gold:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(201,168,76,0.35); }
+.btn-danger { background: var(--danger); color: white; }
+.btn-danger:hover { background: #a93226; }
+.btn-info { background: var(--info); color: white; }
+.btn-info:hover { background: #1c6ea4; }
+.btn-outline { background: transparent; border: 1.5px solid var(--gold); color: var(--dark2); }
+.btn-sm { padding: 6px 12px; font-size: 12px; }
+.btn-full { width: 100%; margin-top: 10px; padding: 12px; }
+
+/* ===== TABLE ===== */
+.tbl-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { background: var(--dark3); color: var(--gold-light); padding: 10px 10px; text-align: left; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; white-space: nowrap; }
+td { padding: 10px; border-bottom: 1px solid var(--cream2); color: var(--text); vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--cream); }
+.td-actions { display: flex; gap: 6px; white-space: nowrap; }
+
+/* ===== BADGE ===== */
+.badge { display: inline-block; padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+.badge-gold { background: rgba(201,168,76,0.15); color: var(--gold); border: 1px solid rgba(201,168,76,0.3); }
+.badge-success { background: rgba(74,138,74,0.12); color: var(--success); }
+.badge-danger { background: rgba(192,57,43,0.12); color: var(--danger); }
+.badge-info { background: rgba(41,128,185,0.12); color: var(--info); }
+
+/* ===== ALERT ===== */
+.alert { padding: 10px 14px; border-radius: 8px; font-size: 13px; margin: 8px 0; }
+.alert-success { background: rgba(74,138,74,0.1); color: var(--success); border: 1px solid rgba(74,138,74,0.25); }
+.alert-error { background: rgba(192,57,43,0.1); color: var(--danger); border: 1px solid rgba(192,57,43,0.25); }
+.alert-info { background: rgba(41,128,185,0.1); color: var(--info); border: 1px solid rgba(41,128,185,0.25); }
+
+/* ===== STAT CARDS ===== */
+.stat-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 14px; }
+.stat-card { background: white; border-radius: var(--radius); padding: 14px; text-align: center; border: 1px solid rgba(201,168,76,0.12); box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+.stat-num { font-size: 24px; font-weight: 900; color: var(--gold); }
+.stat-label { font-size: 11px; color: var(--text2); margin-top: 4px; }
+
+/* ===== SEARCH BAR ===== */
+.search-bar { display: flex; gap: 8px; margin-bottom: 12px; }
+.search-bar input { flex: 1; }
+
+/* ===== TOGGLE ===== */
+.toggle-wrap { display: flex; align-items: center; gap: 8px; }
+.toggle { position: relative; width: 40px; height: 22px; }
+.toggle input { opacity: 0; width: 0; height: 0; }
+.toggle-slider { position: absolute; inset: 0; background: #ccc; border-radius: 22px; cursor: pointer; transition: 0.3s; }
+.toggle-slider::before { content: ''; position: absolute; height: 16px; width: 16px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: 0.3s; }
+.toggle input:checked + .toggle-slider { background: var(--gold); }
+.toggle input:checked + .toggle-slider::before { transform: translateX(18px); }
+
+/* ===== EMPTY STATE ===== */
+.empty { text-align: center; padding: 30px; color: var(--text2); font-size: 13px; }
+.empty-icon { font-size: 36px; margin-bottom: 10px; }
+
+/* ===== LOADING SPINNER ===== */
+.spin { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(201,168,76,0.3); border-top-color: var(--gold); border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 6px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ===== DIVIDER ===== */
+.divider { height: 1px; background: var(--cream2); margin: 14px 0; }
+
+/* ===== BALANCE BOX ===== */
+.balance-box { background: linear-gradient(135deg, var(--dark), var(--dark2)); border-radius: var(--radius); padding: 16px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.balance-label { font-size: 12px; color: rgba(255,255,255,0.6); }
+.balance-num { font-size: 28px; font-weight: 900; color: var(--gold); }
+
+/* ===== MOBILE ===== */
+@media(max-width:480px){
+  .form-grid { grid-template-columns: 1fr; }
+  .form-grid.col3 { grid-template-columns: 1fr 1fr; }
+  .stat-grid { grid-template-columns: repeat(3,1fr); }
+  .stat-num { font-size: 18px; }
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div>
+    <div class="header-logo">UNI Hair Design</div>
+    <div class="header-title">尊爵 <span>管理後台</span></div>
+  </div>
+  <div class="header-badge">ADMIN</div>
+</div>
+
+<!-- NAV -->
+<div class="nav-wrap">
+  <div class="nav-tab active" onclick="switchTab('customer')">👤 顧客</div>
+  <div class="nav-tab" onclick="switchTab('credit')">💰 儲值</div>
+  <div class="nav-tab" onclick="switchTab('product')">🧴 商品</div>
+  <div class="nav-tab" onclick="switchTab('service_log')">📋 消費紀錄</div>
+  <div class="nav-tab" onclick="switchTab('purchase_log')">🛍️ 購物紀錄</div>
+  <div class="nav-tab" onclick="switchTab('inventory')">📦 庫存</div>
+  <div class="nav-tab" onclick="switchTab('schedule')">📅 排程</div>
+  <div class="nav-tab" onclick="switchTab('lock')">🔒 鎖定時段</div>
+  <div class="nav-tab" onclick="switchTab('blacklist')">🚫 黑名單</div>
+  <div class="nav-tab" onclick="switchTab('settings')">⚙️ 系統設定</div>
+</div>
+
+<div class="content">
+
+<!-- ===================== 顧客查詢 ===================== -->
+<div class="section active" id="sec-customer">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title"><div class="line"></div>查詢顧客</div>
+    </div>
+    <div class="search-bar">
+      <input type="tel" id="cust-phone" placeholder="輸入電話號碼" maxlength="10">
+      <button class="btn btn-gold" onclick="searchCustomer()">查詢</button>
+    </div>
+    <div id="cust-result"></div>
+  </div>
+</div>
+
+<!-- ===================== 儲值紀錄 ===================== -->
+<div class="section" id="sec-credit">
+  <!-- 查詢餘額 -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title"><div class="line"></div>查詢餘額</div>
+    </div>
+    <div class="search-bar">
+      <input type="tel" id="credit-query-phone" placeholder="輸入電話號碼">
+      <button class="btn btn-gold" onclick="queryBalance()">查詢</button>
+    </div>
+    <div id="credit-balance-result"></div>
+    <div id="credit-list-result"></div>
+  </div>
+  <!-- 新增儲值 -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title"><div class="line"></div>新增儲值</div>
+    </div>
+    <div class="form-grid">
+      <div>
+        <label>電話 *</label>
+        <input type="tel" id="credit-phone" placeholder="09xxxxxxxx">
+      </div>
+      <div>
+        <label>姓名</label>
+        <input type="text" id="credit-name" placeholder="顧客姓名">
+      </div>
+      <div>
+        <label>儲值金額 *</label>
+        <input type="number" id="credit-amount" placeholder="0">
+      </div>
+      <div>
+        <label>贈送金額</label>
+        <input type="number" id="credit-bonus" placeholder="0">
+      </div>
+      <div>
+        <label>付款方式</label>
+        <select id="credit-pay">
+          <option>現金</option>
+          <option>街口支付</option>
+          <option>銀行轉帳</option>
+          <option>iPASS</option>
+        </select>
+      </div>
+      <div>
+        <label>備註</label>
+        <input type="text" id="credit-note" placeholder="選填">
+      </div>
+    </div>
+    <div id="credit-add-msg"></div>
+    <button class="btn btn-gold btn-full" onclick="addCredit()">✅ 新增儲值</button>
+  </div>
+  <!-- 扣款 -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title"><div class="line"></div>消費折抵</div>
+    </div>
+    <div class="form-grid">
+      <div>
+        <label>電話 *</label>
+        <input type="tel" id="deduct-phone" placeholder="09xxxxxxxx">
+      </div>
+      <div>
+        <label>扣款金額 *</label>
+        <input type="number" id="deduct-amount" placeholder="0">
+      </div>
+      <div class="form-full">
+        <label>備註</label>
+        <input type="text" id="deduct-note" placeholder="例：消費折抵">
+      </div>
+    </div>
+    <div id="deduct-msg"></div>
+    <button class="btn btn-danger btn-full" onclick="doDeduct()">💳 執行扣款</button>
+  </div>
+</div>
+
+<!-- ===================== 商品管理 ===================== -->
+<div class="section" id="sec-product">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title"><div class="line"></div>新增 / 修改商品</div>
+      <button class="btn btn-outline btn-sm" onclick="clearProductForm()">清除</button>
+    </div>
+    <div class="form-grid">
+      <div>
+        <label>商品ID（修改時填）</label>
+        <input type="text" id="prod-pid" placeholder="留空=自動產生">
+      </div>
+      <div>
+        <label>商品名稱 *</label>
+        <input type="text" id="prod-name" placeholder="例：海鹽洗髮精">
+      </div>
+      <div>
+        <label>分類</label>
+        <input type="text" id="prod-category" placeholder="例：洗護">
+      </div>
+      <div>
+        <label>售價</label>
+        <input type="number" id="prod-price" placeholder="0">
+      </div>
+      <div>
+        <label>單位</label>
+        <input type="text" id="prod-unit" placeholder="瓶">
+      </div>
+      <div>
+        <label>使用天數</label>
+        <input type="number" id="prod-usedays" placeholder="30">
+      </div>
+      <div>
+        <label>提前提醒天數</label>
+        <input type="number" id="prod-warndays" placeholder="5">
+      </div>
+      <div>
+        <label>備註</label>
+        <input type="text" id="prod-note" placeholder="選填">
+      </div>
+      <div class="form-full">
+        <label>啟用</label>
+        <label class="toggle-wrap">
+          <label class="toggle"><input type="checkbox" id="prod-enabled" checked><span class="toggle-slider"></span></label>
+          <span style="font-size:13px;color:var(--text2)">啟用此商品</span>
+        </label>
+      </div>
+    </div>
+    <div id="prod-msg"></div>
+    <button class="btn btn-gold btn-full" onclick="saveProduct()">💾 儲存商品</button>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title"><div class="line"></div>商品列表</div>
+      <button class="btn btn-outline btn-sm" onclick="loadProducts()">🔄 重新整理</button>
+    </div>
+    <div id="prod-list"><div class="empty"><div class="empty-icon">🧴</div>點重新整理載入商品</div></div>
+  </div>
+</div>
+
+<!-- ===================== 消費紀錄 ===================== -->
+<div class="section" id="sec-service_log">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title"><div class="line"></div>新增消費紀錄</div>
+    </div>
+    <div class="form-grid">
+      <div>
+        <label>電話 *</label>
+        <input type="tel" id="sl-phone" placeholder="09xxxxxxxx">
+      </div>
+      <div>
+        <label>到店日期</label>
+        <input type="date" id="sl-date">
+      </div>
+      <div class="form-full">
+        <label>服務項目</label>
+        <input type="text" id="sl-services" placeholder="例：成人剪髮、頭皮護理">
+      </div>
+      <div>
+        <label>金額</label>
+        <input type="number" id="sl-amount" placeholder="0">
+      </div>
+      <div>
+        <label>付款方式</label>
+        <select id="sl-pay">
+          <option>現金</option>
+          <option>街口支付</option>
+          <option>銀行轉帳</option>
+          <option>iPASS</option>
+          <option>儲值折抵</option>
+        </select>
+      </div>
+      <div class="form-full">
+        <label>備註</label>
+        <input type="text" id="sl-note" placeholder="選填">
+      </div>
+    </div>
+    <div id="sl-msg"></div>
+    <button class="btn btn-gold btn-full" onclick="addServiceLog()">✅ 新增消費紀錄</button>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title"><div class="line"></div>查詢消費紀錄</div>
+    </div>
+    <div class="search-bar">
+      <input type="tel" id="sl-query-phone" placeholder="輸入電話號碼">
+      <button class="btn btn-gold" onclick="queryServiceLogs()">查詢</button>
+    </div>
+    <div id="sl-list"></div>
+  </div>
+</div>
+
+<!-- ===================== 購物紀錄 ===================== -->
+<div class="section" id="sec-purchase_log">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title"><div class="line"></div>新增購物紀錄</div>
+    </div>
+    <div class="form-grid">
+      <div>
+        <label>電話 *</label>
+        <input type="tel" id="pl-phone" placeholder="09xxxxxxxx">
+      </div>
+      <div>
+        <label>購買日期</label>
+        <input type="date" id="pl-date">
+      </div>
+      <div>
+        <label>商品</label>
+        <select id="pl-product" onchange="fillProductInfo()">
+          <option value="">-- 選擇商品 --</option>
+        </select>
+      </div>
+      <div>
+        <label>數量</label>
+        <input type="number" id="pl-qty" value="1" min="1">
+      </div>
+      <div>
+        <label>單價</label>
+        <input type="number" id="pl-price" placeholder="0">
+      </div>
+      <div>
+        <label>付款方式</label>
+        <select id="pl-pay">
+          <option>現金</option>
+          <option>街口支付</option>
+          <option>銀行轉帳</option>
+          <option>iPASS</option>
+          <option>儲值折抵</option>
+        </select>
+      </div>
+      <div class="form-full">
+        <label>備註</label>
+        <input type="text" id="pl-note" placeholder="選填">
+      </div>
+    </div>
+    <div id="pl-msg"></div>
+    <button class="btn btn-gold btn-full" onclick="addPurchaseLog()">✅ 新增購物紀錄</button>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title"><div class="line"></div>查詢購物紀錄</div>
+    </div>
+    <div class="search-bar">
+      <input type="tel" id="pl-query-phone" placeholder="輸入電話號碼">
+      <button class="btn btn-gold" onclick="queryPurchaseLogs()">查詢</button>
+    </div>
+    <div id="pl-list"></div>
+  </div>
+</div>
+
+<!-- ===================== 個人庫存 ===================== -->
+<div class="section" id="sec-inventory">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title"><div class="line"></div>查詢個人庫存</div>
+    </div>
+    <div class="search-bar">
+      <input type="tel" id="inv-phone" placeholder="輸入電話號碼">
+      <button class="btn btn-gold" onclick="queryInventory()">查詢</button>
+    </div>
+    <div id="inv-list"></div>
+  </div>
+</div>
+
+<!-- ===================== 排程設定 ===================== -->
+<div class="section" id="sec-schedule">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title"><div class="line"></div>新增排程（休假/休息）</div>
+    </div>
+    <div class="form-grid">
+      <div>
+        <label>日期 *</label>
+        <input type="date" id="sched-date">
+      </div>
+      <div>
+        <label>類型</label>
+        <select id="sched-type" onchange="toggleRestTime()">
+          <option value="closed">全天休假</option>
+          <option value="rest">部分休息</option>
+        </select>
+      </div>
+      <div id="sched-time-wrap" style="display:none;" class="form-full">
+        <label>休息時段（格式：09:00-12:00）</label>
+        <input type="text" id="sched-time" placeholder="09:00-12:00">
+      </div>
+      <div class="form-full">
+        <label>備註</label>
+        <input type="text" id="sched-note" placeholder="例：過年休假">
+      </div>
+    </div>
+    <div id="sched-msg"></div>
+    <button class="btn btn-gold btn-full" onclick="addSchedule()">✅ 新增排程</button>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title"><div class="line"></div>排程列表</div>
+      <button class="btn btn-outline btn-sm" onclick="loadSchedule()">🔄 重新整理</button>
+    </div>
+    <div id="sched-list"><div class="empty"><div class="empty-icon">📅</div>點重新整理載入</div></div>
+  </div>
+</div>
+
+<!-- ===================== 手動鎖定時段 ===================== -->
+<div class="section" id="sec-lock">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title"><div class="line"></div>鎖定時段</div>
+    </div>
+    <div class="form-grid">
+      <div>
+        <label>日期 *</label>
+        <input type="date" id="lock-date">
+      </div>
+      <div>
+        <label>時段 *</label>
+        <select id="lock-time">
+          <option value="">-- 選擇時段 --</option>
+          <option>09:00</option><option>10:00</option><option>11:00</option>
+          <option>12:00</option><option>13:00</option><option>14:00</option>
+          <option>15:00</option><option>16:00</option><option>17:00</option>
+          <option>18:00</option>
+        </select>
+      </div>
+      <div class="form-full">
+        <label>備註</label>
+        <input type="text" id="lock-note" placeholder="例：外出、特殊事項">
+      </div>
+    </div>
+    <div id="lock-msg"></div>
+    <button class="btn btn-gold btn-full" onclick="addLockSlot()">🔒 鎖定此時段</button>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title"><div class="line"></div>已鎖定時段</div>
+      <button class="btn btn-outline btn-sm" onclick="loadLockedSlots()">🔄 重新整理</button>
+    </div>
+    <div class="search-bar">
+      <input type="date" id="lock-query-date">
+      <button class="btn btn-info" onclick="loadLockedSlots()">篩選</button>
+    </div>
+    <div id="lock-list"><div class="empty"><div class="empty-icon">🔒</div>點重新整理載入</div></div>
+  </div>
+</div>
+
+<!-- ===================== 黑名單 ===================== -->
+<div class="section" id="sec-blacklist">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title"><div class="line"></div>新增黑名單</div>
+    </div>
+    <div class="form-grid">
+      <div>
+        <label>電話 *</label>
+        <input type="tel" id="bl-phone" placeholder="09xxxxxxxx">
+      </div>
+      <div>
+        <label>姓名</label>
+        <input type="text" id="bl-name" placeholder="選填">
+      </div>
+      <div>
+        <label>分類</label>
+        <select id="bl-category">
+          <option>無故爽約</option>
+          <option>態度不佳</option>
+          <option>其他</option>
+        </select>
+      </div>
+      <div>
+        <label>備註</label>
+        <input type="text" id="bl-remark" placeholder="選填">
+      </div>
+      <div class="form-full">
+        <label>自訂提示文字（顯示給顧客）</label>
+        <input type="text" id="bl-msg" placeholder="留空使用預設訊息">
+      </div>
+    </div>
+    <div id="bl-add-msg"></div>
+    <button class="btn btn-danger btn-full" onclick="addBlacklist()">🚫 加入黑名單</button>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title"><div class="line"></div>黑名單列表</div>
+      <button class="btn btn-outline btn-sm" onclick="loadBlacklist()">🔄 重新整理</button>
+    </div>
+    <div id="bl-list"><div class="empty"><div class="empty-icon">🚫</div>點重新整理載入</div></div>
+  </div>
+</div>
+
+<!-- ===================== 系統設定 ===================== -->
+<div class="section" id="sec-settings">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title"><div class="line"></div>系統設定</div>
+      <button class="btn btn-outline btn-sm" onclick="loadSettings()">🔄 重新整理</button>
+    </div>
+    <div id="settings-list"><div class="empty"><div class="empty-icon">⚙️</div>點重新整理載入</div></div>
+  </div>
+</div>
+
+</div><!-- end content -->
+
+<script>
+// =====================================================================
+//  設定 GAS URL（填你的尊爵系統部署URL）
+// =====================================================================
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbz2xGmguRIOv8bEefyRN7eZOaR2G0H-gQevWXTW42oAg2jqFfHtR_2DAx_dMcFP_11f/exec';
+
+// =====================================================================
+//  通用：呼叫 GAS API
+// =====================================================================
+async function callGAS(fn, params = {}) {
+  const url = GAS_URL + '?fn=' + fn + '&params=' + encodeURIComponent(JSON.stringify(params)) + '&t=' + Date.now();
+  const res = await fetch(url, { cache: 'no-store' });
+  return res.json();
+}
+
+function showMsg(id, msg, type = 'success') {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.innerHTML = `<div class="alert alert-${type}">${msg}</div>`;
+  setTimeout(() => { el.innerHTML = ''; }, 4000);
+}
+
+function today() {
+  return new Date().toISOString().split('T')[0];
+}
+
+// =====================================================================
+//  Tab 切換
+// =====================================================================
+function switchTab(name) {
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('sec-' + name).classList.add('active');
+  // 自動載入
+  if (name === 'product') loadProducts();
+  if (name === 'schedule') loadSchedule();
+  if (name === 'lock') loadLockedSlots();
+  if (name === 'blacklist') loadBlacklist();
+  if (name === 'settings') loadSettings();
+  if (name === 'purchase_log') loadProductsForSelect();
+}
+
+// =====================================================================
+//  👤 顧客查詢
+// =====================================================================
+async function searchCustomer() {
+  const phone = document.getElementById('cust-phone').value.trim();
+  if (!phone) { alert('請輸入電話'); return; }
+  const el = document.getElementById('cust-result');
+  el.innerHTML = '<div class="alert alert-info"><span class="spin"></span>查詢中…</div>';
+  try {
+    const r = await callGAS('getCustomerByPhone', { phone });
+    if (!r.success) { el.innerHTML = `<div class="alert alert-error">❌ ${r.message}</div>`; return; }
+    const c = r.customer;
+    el.innerHTML = `
+      <div style="background:linear-gradient(135deg,var(--dark),var(--dark2));border-radius:var(--radius);padding:16px;color:white;margin-top:10px;">
+        <div style="font-size:10px;color:var(--gold);letter-spacing:2px;margin-bottom:6px;">MEMBER</div>
+        <div style="font-size:22px;font-weight:900;">${c.name}</div>
+        <div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div style="font-size:11px;color:rgba(255,255,255,0.6);">電話<br><strong style="color:var(--gold-light);font-size:13px;">${c.phone}</strong></div>
+          <div style="font-size:11px;color:rgba(255,255,255,0.6);">會員等級<br><strong style="color:var(--gold-light);font-size:13px;">${c.memberLevel||'尊爵'}</strong></div>
+          <div style="font-size:11px;color:rgba(255,255,255,0.6);">到訪次數<br><strong style="color:var(--gold-light);font-size:13px;">${c.visitCount} 次</strong></div>
+          <div style="font-size:11px;color:rgba(255,255,255,0.6);">累計消費<br><strong style="color:var(--gold-light);font-size:13px;">$${(c.totalSpend||0).toLocaleString()}</strong></div>
+          <div style="font-size:11px;color:rgba(255,255,255,0.6);">上次到店<br><strong style="color:var(--gold-light);font-size:13px;">${c.lastVisit||'—'}</strong></div>
+          <div style="font-size:11px;color:rgba(255,255,255,0.6);">儲值餘額<br><strong style="color:var(--gold);font-size:18px;">$${(c.creditBalance||0).toLocaleString()}</strong></div>
+        </div>
+        ${c.hairNote ? `<div style="margin-top:10px;background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.25);border-radius:8px;padding:10px;font-size:12px;color:rgba(255,255,255,0.75);">
+          <div style="color:var(--gold);font-size:10px;font-weight:700;margin-bottom:4px;">髮質備註</div>${c.hairNote}</div>` : ''}
+      </div>
+    `;
+  } catch(e) {
+    el.innerHTML = '<div class="alert alert-error">連線失敗，請稍後再試</div>';
+  }
+}
+
+// =====================================================================
+//  💰 儲值
+// =====================================================================
+async function queryBalance() {
+  const phone = document.getElementById('credit-query-phone').value.trim();
+  if (!phone) { alert('請輸入電話'); return; }
+  const balEl  = document.getElementById('credit-balance-result');
+  const listEl = document.getElementById('credit-list-result');
+  balEl.innerHTML = '<div class="alert alert-info"><span class="spin"></span>查詢中…</div>';
+  listEl.innerHTML = '';
+  try {
+    const [br, lr] = await Promise.all([
+      callGAS('getBalance', { phone, adminMode: 'true' }),
+      callGAS('listCredits', { phone, adminMode: 'true' }),
+    ]);
+    if (!br.success) { balEl.innerHTML = `<div class="alert alert-error">❌ ${br.message}</div>`; return; }
+    balEl.innerHTML = `
+      <div class="balance-box">
+        <div><div class="balance-label">${br.name || phone}</div><div style="font-size:11px;color:rgba(255,255,255,0.5);">儲值餘額</div></div>
+        <div class="balance-num">$${(br.balance||0).toLocaleString()}</div>
+      </div>`;
+    if (lr.success && lr.records && lr.records.length) {
+      const rows = lr.records.map(r => `
+        <tr>
+          <td>${r.createdAt ? r.createdAt.slice(0,10) : ''}</td>
+          <td><span class="badge ${r.balance >= 0 ? 'badge-success' : 'badge-danger'}">$${r.balance >= 0 ? '+' : ''}${(r.balance||0).toLocaleString()}</span></td>
+          <td>${r.payMethod}</td>
+          <td>${r.note||''}</td>
+          <td><button class="btn btn-danger btn-sm" onclick="deleteCredit(${r.rowIndex})">刪除</button></td>
+        </tr>`).join('');
+      listEl.innerHTML = `<div class="tbl-wrap"><table><thead><tr><th>日期</th><th>金額</th><th>付款</th><th>備註</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
+    } else {
+      listEl.innerHTML = '<div class="empty" style="padding:16px;">尚無儲值紀錄</div>';
+    }
+  } catch(e) {
+    balEl.innerHTML = '<div class="alert alert-error">連線失敗</div>';
+  }
+}
+
+async function addCredit() {
+  const phone  = document.getElementById('credit-phone').value.trim();
+  const name   = document.getElementById('credit-name').value.trim();
+  const amount = document.getElementById('credit-amount').value;
+  const bonus  = document.getElementById('credit-bonus').value || 0;
+  const pay    = document.getElementById('credit-pay').value;
+  const note   = document.getElementById('credit-note').value.trim();
+  if (!phone || !amount) { showMsg('credit-add-msg', '電話與儲值金額必填', 'error'); return; }
+  showMsg('credit-add-msg', '<span class="spin"></span>處理中…', 'info');
+  try {
+    const r = await callGAS('addCredit', { phone, name, amount, bonus, payMethod: pay, note });
+    if (r.success) {
+      showMsg('credit-add-msg', `✅ 儲值成功！目前餘額 $${(r.balance||0).toLocaleString()}`, 'success');
+      document.getElementById('credit-phone').value = '';
+      document.getElementById('credit-name').value = '';
+      document.getElementById('credit-amount').value = '';
+      document.getElementById('credit-bonus').value = '';
+      document.getElementById('credit-note').value = '';
+    } else {
+      showMsg('credit-add-msg', '❌ ' + r.message, 'error');
+    }
+  } catch(e) { showMsg('credit-add-msg', '連線失敗', 'error'); }
+}
+
+async function doDeduct() {
+  const phone  = document.getElementById('deduct-phone').value.trim();
+  const amount = document.getElementById('deduct-amount').value;
+  const note   = document.getElementById('deduct-note').value.trim();
+  if (!phone || !amount) { showMsg('deduct-msg', '電話與扣款金額必填', 'error'); return; }
+  if (!confirm(`確定扣款 $${amount} 給 ${phone}？`)) return;
+  showMsg('deduct-msg', '<span class="spin"></span>處理中…', 'info');
+  try {
+    const r = await callGAS('deductCredit', { phone, amount, note, adminMode: 'true' });
+    if (r.success) {
+      showMsg('deduct-msg', `✅ 扣款成功！剩餘餘額 $${(r.remainBalance||0).toLocaleString()}`, 'success');
+      document.getElementById('deduct-phone').value = '';
+      document.getElementById('deduct-amount').value = '';
+    } else {
+      showMsg('deduct-msg', '❌ ' + r.message, 'error');
+    }
+  } catch(e) { showMsg('deduct-msg', '連線失敗', 'error'); }
+}
+
+async function deleteCredit(rowIndex) {
+  if (!confirm('確定刪除這筆紀錄？')) return;
+  try {
+    const r = await callGAS('deleteCredit', { rowIndex });
+    if (r.success) {
+      const phone = document.getElementById('credit-query-phone').value.trim();
+      if (phone) queryBalance();
+    } else { alert('刪除失敗：' + r.message); }
+  } catch(e) { alert('連線失敗'); }
+}
+
+// =====================================================================
+//  🧴 商品管理
+// =====================================================================
+async function loadProducts() {
+  const el = document.getElementById('prod-list');
+  el.innerHTML = '<div class="alert alert-info"><span class="spin"></span>載入中…</div>';
+  try {
+    const r = await callGAS('getProducts');
+    if (!r.success || !r.products.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">🧴</div>尚無商品</div>'; return; }
+    const rows = r.products.map(p => `
+      <tr>
+        <td><strong>${p.name}</strong><br><span style="font-size:11px;color:var(--text2);">${p.category}</span></td>
+        <td>$${p.price.toLocaleString()}</td>
+        <td>${p.useDays}天</td>
+        <td>${p.warnDays}天前</td>
+        <td><span class="badge ${p.enabled ? 'badge-success' : 'badge-danger'}">${p.enabled ? '啟用' : '停用'}</span></td>
+        <td class="td-actions">
+          <button class="btn btn-outline btn-sm" onclick="editProduct(${JSON.stringify(p).split('"').join("'")})">編輯</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteProduct('${p.pid}')">停用</button>
+        </td>
+      </tr>`).join('');
+    el.innerHTML = `<div class="tbl-wrap"><table><thead><tr><th>商品</th><th>售價</th><th>使用天數</th><th>提醒</th><th>狀態</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  } catch(e) { el.innerHTML = '<div class="alert alert-error">載入失敗</div>'; }
+}
+
+function editProduct(p) {
+  // p 傳進來是 object
+  const prod = typeof p === 'string' ? JSON.parse(p.split("'").join('"')) : p;
+  document.getElementById('prod-pid').value      = prod.pid || '';
+  document.getElementById('prod-name').value     = prod.name || '';
+  document.getElementById('prod-category').value = prod.category || '';
+  document.getElementById('prod-price').value    = prod.price || '';
+  document.getElementById('prod-unit').value     = prod.unit || '瓶';
+  document.getElementById('prod-usedays').value  = prod.useDays || 30;
+  document.getElementById('prod-warndays').value = prod.warnDays || 5;
+  document.getElementById('prod-note').value     = prod.note || '';
+  document.getElementById('prod-enabled').checked = prod.enabled !== false;
+  window.scrollTo(0, 0);
+}
+
+function clearProductForm() {
+  ['prod-pid','prod-name','prod-category','prod-price','prod-unit','prod-usedays','prod-warndays','prod-note'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('prod-unit').value = '瓶';
+  document.getElementById('prod-usedays').value = '30';
+  document.getElementById('prod-warndays').value = '5';
+  document.getElementById('prod-enabled').checked = true;
+}
+
+async function saveProduct() {
+  const name = document.getElementById('prod-name').value.trim();
+  if (!name) { showMsg('prod-msg', '商品名稱必填', 'error'); return; }
+  showMsg('prod-msg', '<span class="spin"></span>儲存中…', 'info');
+  try {
+    const r = await callGAS('saveProduct', {
+      pid:      document.getElementById('prod-pid').value.trim(),
+      name,
+      category: document.getElementById('prod-category').value.trim(),
+      price:    document.getElementById('prod-price').value,
+      unit:     document.getElementById('prod-unit').value.trim() || '瓶',
+      useDays:  document.getElementById('prod-usedays').value || 30,
+      warnDays: document.getElementById('prod-warndays').value || 5,
+      note:     document.getElementById('prod-note').value.trim(),
+      enabled:  document.getElementById('prod-enabled').checked ? 'true' : 'false',
+    });
+    if (r.success) {
+      showMsg('prod-msg', `✅ 商品已${r.action === 'created' ? '新增' : '更新'}`, 'success');
+      clearProductForm();
+      loadProducts();
+    } else { showMsg('prod-msg', '❌ ' + r.message, 'error'); }
+  } catch(e) { showMsg('prod-msg', '連線失敗', 'error'); }
+}
+
+async function deleteProduct(pid) {
+  if (!confirm('確定停用此商品？')) return;
+  try {
+    const r = await callGAS('deleteProduct', { pid });
+    if (r.success) { loadProducts(); }
+    else { alert('失敗：' + r.message); }
+  } catch(e) { alert('連線失敗'); }
+}
+
+async function loadProductsForSelect() {
+  try {
+    const r = await callGAS('getProducts');
+    const sel = document.getElementById('pl-product');
+    if (!r.success) return;
+    sel.innerHTML = '<option value="">-- 選擇商品 --</option>' +
+      r.products.filter(p => p.enabled).map(p => `<option value="${p.pid}" data-price="${p.price}" data-name="${p.name}">${p.name} $${p.price}</option>`).join('');
+  } catch(e) {}
+}
+
+function fillProductInfo() {
+  const sel = document.getElementById('pl-product');
+  const opt = sel.options[sel.selectedIndex];
+  if (opt && opt.dataset.price) document.getElementById('pl-price').value = opt.dataset.price;
+}
+
+// =====================================================================
+//  📋 消費紀錄
+// =====================================================================
+async function addServiceLog() {
+  const phone = document.getElementById('sl-phone').value.trim();
+  if (!phone) { showMsg('sl-msg', '電話必填', 'error'); return; }
+  showMsg('sl-msg', '<span class="spin"></span>儲存中…', 'info');
+  try {
+    const r = await callGAS('addServiceLog', {
+      phone,
+      date:     document.getElementById('sl-date').value || today(),
+      services: document.getElementById('sl-services').value.trim(),
+      amount:   document.getElementById('sl-amount').value || 0,
+      payMethod:document.getElementById('sl-pay').value,
+      note:     document.getElementById('sl-note').value.trim(),
+    });
+    if (r.success) {
+      showMsg('sl-msg', '✅ 消費紀錄已新增', 'success');
+      ['sl-phone','sl-date','sl-services','sl-amount','sl-note'].forEach(id => { document.getElementById(id).value = ''; });
+    } else { showMsg('sl-msg', '❌ ' + r.message, 'error'); }
+  } catch(e) { showMsg('sl-msg', '連線失敗', 'error'); }
+}
+
+async function queryServiceLogs() {
+  const phone = document.getElementById('sl-query-phone').value.trim();
+  if (!phone) { alert('請輸入電話'); return; }
+  const el = document.getElementById('sl-list');
+  el.innerHTML = '<div class="alert alert-info"><span class="spin"></span>查詢中…</div>';
+  try {
+    const r = await callGAS('getServiceLogs', { phone });
+    if (!r.success || !r.logs.length) { el.innerHTML = '<div class="empty" style="padding:16px;">尚無消費紀錄</div>'; return; }
+    let total = r.logs.reduce((s,l) => s + l.amount, 0);
+    const rows = r.logs.map(l => `<tr><td>${l.date}</td><td>${l.services}</td><td>$${l.amount.toLocaleString()}</td><td>${l.payMethod}</td><td>${l.note||''}</td></tr>`).join('');
+    el.innerHTML = `<div style="text-align:right;font-size:12px;color:var(--text2);margin-bottom:6px;">共 ${r.logs.length} 筆 ／ 合計 $${total.toLocaleString()}</div><div class="tbl-wrap"><table><thead><tr><th>日期</th><th>服務</th><th>金額</th><th>付款</th><th>備註</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  } catch(e) { el.innerHTML = '<div class="alert alert-error">連線失敗</div>'; }
+}
+
+// =====================================================================
+//  🛍️ 購物紀錄
+// =====================================================================
+async function addPurchaseLog() {
+  const phone = document.getElementById('pl-phone').value.trim();
+  if (!phone) { showMsg('pl-msg', '電話必填', 'error'); return; }
+  const sel  = document.getElementById('pl-product');
+  const opt  = sel.options[sel.selectedIndex];
+  const pid  = sel.value;
+  const pname= opt && pid ? opt.dataset.name || opt.text.split(' ')[0] : '';
+  showMsg('pl-msg', '<span class="spin"></span>儲存中…', 'info');
+  try {
+    const r = await callGAS('addPurchaseLog', {
+      phone,
+      date:        document.getElementById('pl-date').value || today(),
+      pid,
+      productName: pname,
+      qty:         document.getElementById('pl-qty').value || 1,
+      unitPrice:   document.getElementById('pl-price').value || 0,
+      payMethod:   document.getElementById('pl-pay').value,
+      note:        document.getElementById('pl-note').value.trim(),
+    });
+    if (r.success) {
+      showMsg('pl-msg', '✅ 購物紀錄已新增，庫存已自動更新', 'success');
+      ['pl-phone','pl-date','pl-note'].forEach(id => { document.getElementById(id).value = ''; });
+      document.getElementById('pl-qty').value = 1;
+      document.getElementById('pl-price').value = '';
+      document.getElementById('pl-product').value = '';
+    } else { showMsg('pl-msg', '❌ ' + r.message, 'error'); }
+  } catch(e) { showMsg('pl-msg', '連線失敗', 'error'); }
+}
+
+async function queryPurchaseLogs() {
+  const phone = document.getElementById('pl-query-phone').value.trim();
+  if (!phone) { alert('請輸入電話'); return; }
+  const el = document.getElementById('pl-list');
+  el.innerHTML = '<div class="alert alert-info"><span class="spin"></span>查詢中…</div>';
+  try {
+    const r = await callGAS('getPurchaseLogs', { phone });
+    if (!r.success || !r.logs.length) { el.innerHTML = '<div class="empty" style="padding:16px;">尚無購物紀錄</div>'; return; }
+    let total = r.logs.reduce((s,l) => s + l.subtotal, 0);
+    const rows = r.logs.map(l => `<tr><td>${l.date}</td><td>${l.productName}</td><td>${l.qty}</td><td>$${l.unitPrice.toLocaleString()}</td><td>$${l.subtotal.toLocaleString()}</td><td>${l.payMethod}</td></tr>`).join('');
+    el.innerHTML = `<div style="text-align:right;font-size:12px;color:var(--text2);margin-bottom:6px;">共 ${r.logs.length} 筆 ／ 合計 $${total.toLocaleString()}</div><div class="tbl-wrap"><table><thead><tr><th>日期</th><th>商品</th><th>數量</th><th>單價</th><th>小計</th><th>付款</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  } catch(e) { el.innerHTML = '<div class="alert alert-error">連線失敗</div>'; }
+}
+
+// =====================================================================
+//  📦 個人庫存
+// =====================================================================
+async function queryInventory() {
+  const phone = document.getElementById('inv-phone').value.trim();
+  if (!phone) { alert('請輸入電話'); return; }
+  const el = document.getElementById('inv-list');
+  el.innerHTML = '<div class="alert alert-info"><span class="spin"></span>查詢中…</div>';
+  try {
+    const r = await callGAS('getInventory', { phone });
+    if (!r.success || !r.inventory.length) { el.innerHTML = '<div class="empty" style="padding:16px;">尚無庫存紀錄</div>'; return; }
+    const rows = r.inventory.map(inv => `
+      <tr>
+        <td><strong>${inv.pname}</strong></td>
+        <td>${inv.qty} 瓶</td>
+        <td>${inv.lastBuy || '—'}</td>
+        <td><span class="badge ${inv.nearEmpty ? 'badge-danger' : 'badge-success'}">${inv.daysLeft} 天</span></td>
+        <td>
+          <div style="display:flex;gap:4px;align-items:center;">
+            <input type="number" id="adj-qty-${inv.invId}" value="${inv.qty}" style="width:60px;padding:5px;font-size:12px;">
+            <button class="btn btn-info btn-sm" onclick="adjustInventory('${inv.invId}')">更新</button>
+          </div>
+        </td>
+      </tr>`).join('');
+    el.innerHTML = `<div class="tbl-wrap"><table><thead><tr><th>商品</th><th>剩餘</th><th>購買日</th><th>剩餘天數</th><th>調整</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  } catch(e) { el.innerHTML = '<div class="alert alert-error">連線失敗</div>'; }
+}
+
+async function adjustInventory(invId) {
+  const qty = document.getElementById('adj-qty-' + invId).value;
+  if (qty === '' || qty < 0) { alert('請輸入正確數量'); return; }
+  try {
+    const r = await callGAS('adjustInventory', { invId, qty });
+    if (r.success) {
+      showMsg && alert('✅ 庫存已更新');
+      queryInventory();
+    } else { alert('失敗：' + r.message); }
+  } catch(e) { alert('連線失敗'); }
+}
+
+// =====================================================================
+//  📅 排程設定
+// =====================================================================
+function toggleRestTime() {
+  const type = document.getElementById('sched-type').value;
+  document.getElementById('sched-time-wrap').style.display = type === 'rest' ? 'block' : 'none';
+}
+
+async function addSchedule() {
+  const date = document.getElementById('sched-date').value;
+  const type = document.getElementById('sched-type').value;
+  if (!date) { showMsg('sched-msg', '日期必填', 'error'); return; }
+  showMsg('sched-msg', '<span class="spin"></span>儲存中…', 'info');
+  try {
+    const r = await callGAS('updateSchedule', {
+      date, type,
+      time: document.getElementById('sched-time').value.trim(),
+      note: document.getElementById('sched-note').value.trim(),
+    });
+    if (r.success) {
+      showMsg('sched-msg', '✅ 排程已新增', 'success');
+      document.getElementById('sched-date').value = '';
+      document.getElementById('sched-note').value = '';
+      document.getElementById('sched-time').value = '';
+      loadSchedule();
+    } else { showMsg('sched-msg', '❌ ' + r.message, 'error'); }
+  } catch(e) { showMsg('sched-msg', '連線失敗', 'error'); }
+}
+
+async function loadSchedule() {
+  const el = document.getElementById('sched-list');
+  el.innerHTML = '<div class="alert alert-info"><span class="spin"></span>載入中…</div>';
+  try {
+    const r = await callGAS('getSchedule');
+    if (!r.success || !r.schedule.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">📅</div>尚無排程設定</div>'; return; }
+    const sorted = r.schedule.sort((a,b) => a.date.localeCompare(b.date));
+    const rows = sorted.map(s => `
+      <tr>
+        <td>${s.date}</td>
+        <td><span class="badge ${s.type==='closed'?'badge-danger':'badge-info'}">${s.type==='closed'?'全天休假':'部分休息'}</span></td>
+        <td>${s.time||'—'}</td>
+        <td>${s.note||''}</td>
+        <td><button class="btn btn-danger btn-sm" onclick="removeSchedule('${s.date}','${s.type}')">刪除</button></td>
+      </tr>`).join('');
+    el.innerHTML = `<div class="tbl-wrap"><table><thead><tr><th>日期</th><th>類型</th><th>時段</th><th>備註</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  } catch(e) { el.innerHTML = '<div class="alert alert-error">載入失敗</div>'; }
+}
+
+async function removeSchedule(date, type) {
+  if (!confirm(`確定刪除 ${date} 的排程？`)) return;
+  try {
+    const r = await callGAS('updateSchedule', { date, type, remove: 'true' });
+    if (r.success) loadSchedule();
+    else alert('失敗：' + r.message);
+  } catch(e) { alert('連線失敗'); }
+}
+
+// =====================================================================
+//  🔒 手動鎖定時段
+// =====================================================================
+async function addLockSlot() {
+  const date = document.getElementById('lock-date').value;
+  const time = document.getElementById('lock-time').value;
+  if (!date || !time) { showMsg('lock-msg', '日期與時段必填', 'error'); return; }
+  showMsg('lock-msg', '<span class="spin"></span>鎖定中…', 'info');
+  try {
+    const r = await callGAS('lockSlot', {
+      date, time,
+      note: document.getElementById('lock-note').value.trim() || '手動鎖定',
+    });
+    if (r.success) {
+      showMsg('lock-msg', '✅ 時段已鎖定', 'success');
+      document.getElementById('lock-date').value = '';
+      document.getElementById('lock-note').value = '';
+      loadLockedSlots();
+    } else { showMsg('lock-msg', '❌ ' + r.message, 'error'); }
+  } catch(e) { showMsg('lock-msg', '連線失敗', 'error'); }
+}
+
+async function loadLockedSlots() {
+  const el   = document.getElementById('lock-list');
+  const date = document.getElementById('lock-query-date').value;
+  el.innerHTML = '<div class="alert alert-info"><span class="spin"></span>載入中…</div>';
+  try {
+    const r = await callGAS('getLockedSlots', { date });
+    if (!r.success || !r.slots.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">🔒</div>尚無鎖定時段</div>'; return; }
+    const sorted = r.slots.sort((a,b) => (a.date+a.time).localeCompare(b.date+b.time));
+    const rows = sorted.map(s => `
+      <tr>
+        <td>${s.date}</td>
+        <td><strong>${s.time}</strong></td>
+        <td>${s.note||''}</td>
+        <td><button class="btn btn-danger btn-sm" onclick="removeLockSlot('${s.date}','${s.time}')">解鎖</button></td>
+      </tr>`).join('');
+    el.innerHTML = `<div class="tbl-wrap"><table><thead><tr><th>日期</th><th>時段</th><th>備註</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  } catch(e) { el.innerHTML = '<div class="alert alert-error">載入失敗</div>'; }
+}
+
+async function removeLockSlot(date, time) {
+  if (!confirm(`確定解鎖 ${date} ${time}？`)) return;
+  try {
+    const r = await callGAS('unlockSlot', { date, time });
+    if (r.success) loadLockedSlots();
+    else alert('失敗：' + r.message);
+  } catch(e) { alert('連線失敗'); }
+}
+
+// =====================================================================
+//  🚫 黑名單
+// =====================================================================
+async function addBlacklist() {
+  const phone = document.getElementById('bl-phone').value.trim();
+  if (!phone) { showMsg('bl-add-msg', '電話必填', 'error'); return; }
+  showMsg('bl-add-msg', '<span class="spin"></span>加入中…', 'info');
+  try {
+    const r = await callGAS('addBlacklist', {
+      phone,
+      name:      document.getElementById('bl-name').value.trim(),
+      category:  document.getElementById('bl-category').value,
+      remark:    document.getElementById('bl-remark').value.trim(),
+      customMsg: document.getElementById('bl-msg').value.trim(),
+    });
+    if (r.success) {
+      showMsg('bl-add-msg', '✅ 已加入黑名單', 'success');
+      ['bl-phone','bl-name','bl-remark','bl-msg'].forEach(id => { document.getElementById(id).value = ''; });
+      loadBlacklist();
+    } else { showMsg('bl-add-msg', '❌ ' + r.message, 'error'); }
+  } catch(e) { showMsg('bl-add-msg', '連線失敗', 'error'); }
+}
+
+async function loadBlacklist() {
+  const el = document.getElementById('bl-list');
+  el.innerHTML = '<div class="alert alert-info"><span class="spin"></span>載入中…</div>';
+  try {
+    const r = await callGAS('getBlacklist');
+    if (!r.success || !r.list.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">🚫</div>黑名單為空</div>'; return; }
+    const rows = r.list.map(b => `
+      <tr>
+        <td><strong>${b.phone}</strong></td>
+        <td>${b.name||'—'}</td>
+        <td><span class="badge badge-danger">${b.category||'其他'}</span></td>
+        <td>${b.remark||''}</td>
+        <td><button class="btn btn-outline btn-sm" onclick="removeBlacklist(${b.rowIndex},'${b.phone}')">移除</button></td>
+      </tr>`).join('');
+    el.innerHTML = `<div class="tbl-wrap"><table><thead><tr><th>電話</th><th>姓名</th><th>分類</th><th>備註</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  } catch(e) { el.innerHTML = '<div class="alert alert-error">載入失敗</div>'; }
+}
+
+async function removeBlacklist(rowIndex, phone) {
+  if (!confirm(`確定將 ${phone} 從黑名單移除？`)) return;
+  try {
+    const r = await callGAS('removeBlacklist', { rowIndex });
+    if (r.success) loadBlacklist();
+    else alert('失敗：' + r.message);
+  } catch(e) { alert('連線失敗'); }
+}
+
+// =====================================================================
+//  ⚙️ 系統設定
+// =====================================================================
+async function loadSettings() {
+  const el = document.getElementById('settings-list');
+  el.innerHTML = '<div class="alert alert-info"><span class="spin"></span>載入中…</div>';
+  try {
+    const r = await callGAS('getSettings');
+    if (!r.success || !r.settings.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">⚙️</div>尚無設定</div>'; return; }
+    const items = r.settings.map(s => `
+      <div style="padding:12px 0;border-bottom:1px solid var(--cream2);">
+        <div style="font-size:11px;color:var(--text2);margin-bottom:6px;">${s.label||s.key}</div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="text" id="setting-${s.key}" value="${s.value}" style="flex:1;">
+          <button class="btn btn-gold btn-sm" onclick="saveSetting('${s.key}','${s.label||s.key}')">儲存</button>
+        </div>
+      </div>`).join('');
+    el.innerHTML = items;
+  } catch(e) { el.innerHTML = '<div class="alert alert-error">載入失敗</div>'; }
+}
+
+async function saveSetting(key, label) {
+  const value = document.getElementById('setting-' + key).value.trim();
+  try {
+    const r = await callGAS('updateSettings', { key, value, label });
+    if (r.success) {
+      // 用小提示代替alert
+      const btn = event.target;
+      const orig = btn.textContent;
+      btn.textContent = '✅';
+      setTimeout(() => { btn.textContent = orig; }, 1500);
+    } else { alert('失敗：' + r.message); }
+  } catch(e) { alert('連線失敗'); }
+}
+
+// =====================================================================
+//  初始化
+// =====================================================================
+window.addEventListener('DOMContentLoaded', () => {
+  // 日期欄位預設今天
+  document.querySelectorAll('input[type=date]').forEach(el => { el.value = today(); });
+});
+</script>
+</body>
+</html>
