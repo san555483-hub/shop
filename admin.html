@@ -36,7 +36,7 @@ body{font-family:'Noto Serif TC',serif;background:var(--linen);color:var(--ink);
 .marquee-track{
   white-space:nowrap;
   display:inline-block;
-  animation:mqRoll 30s linear infinite;
+  animation:mqRoll 80s linear infinite;
 }
 .marquee-track:hover{ animation-play-state:paused; }
 @keyframes mqRoll{
@@ -2730,9 +2730,9 @@ async function loadMarqueeBanner() {
       `<span class="marquee-sep">　　✦　　</span>` +
       `<span class="marquee-text">${combined}</span>`;
 
-    // 依文字長度動態算動畫時間（每個字約 0.4s，最少 12s，最多 60s）
+    // 依文字長度動態算動畫時間（每個字約 1.8s，最少 60s，最多 180s）
     const totalChars = combined.length;
-    const duration   = Math.min(60, Math.max(12, Math.round(totalChars * 0.38)));
+    const duration   = Math.min(180, Math.max(60, Math.round(totalChars * 1.8)));
     track.style.animation = `mqRoll ${duration}s linear infinite`;
 
     bar.classList.add('has-content'); // 顯示 bar
