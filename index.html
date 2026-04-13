@@ -210,8 +210,8 @@ header{background:var(--bark);position:sticky;top:0;z-index:200;box-shadow:0 2px
 body.owner-mode .product-card{cursor:pointer;}
 body.owner-mode .product-card:hover{border-color:var(--rose);}
 
-.prod-img-wrap{width:100%;height:150px;overflow:hidden;position:relative;background:linear-gradient(145deg,#3d2b1f,#6b4226);}
-.prod-img-wrap img{width:100%;height:100%;object-fit:cover;display:block;}
+.prod-img-wrap{width:100%;height:180px;overflow:hidden;position:relative;background:#f8f5f0;}
+.prod-img-wrap img{width:100%;height:100%;object-fit:contain;display:block;padding:6px;}
 .prod-img-ph{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:rgba(255,255,255,.55);}
 .prod-img-ph-icon{font-size:1.8rem;opacity:.5;}
 .prod-img-ph-txt{font-size:.55rem;letter-spacing:.1em;text-transform:uppercase;font-family:'Noto Sans TC',sans-serif;}
@@ -384,9 +384,9 @@ body.owner-mode .product-card:hover{border-color:var(--rose);}
 /* 店家商品編輯 Modal */
 .prod-edit-modal{background:#fff;border-radius:8px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;transform:scale(.94) translateY(12px);transition:transform .28s;box-shadow:0 20px 60px rgba(0,0,0,.2);}
 .modal-wrap.on .prod-edit-modal{transform:scale(1) translateY(0);}
-.edit-img-wrap{width:100%;height:200px;border-radius:6px;overflow:hidden;margin-bottom:12px;position:relative;background:linear-gradient(145deg,#3d2b1f,#6b4226);cursor:pointer;border:2px dashed var(--border);transition:border-color .2s;}
+.edit-img-wrap{width:100%;height:200px;border-radius:6px;overflow:hidden;margin-bottom:12px;position:relative;background:#f8f5f0;cursor:pointer;border:2px dashed var(--border);transition:border-color .2s;}
 .edit-img-wrap:hover{border-color:var(--rose);}
-.edit-img-preview{width:100%;height:100%;object-fit:cover;display:none;}
+.edit-img-preview{width:100%;height:100%;object-fit:contain;padding:6px;display:none;}
 .edit-img-preview.show{display:block;}
 .edit-img-ph{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:rgba(255,255,255,.7);font-family:'Noto Sans TC',sans-serif;}
 .edit-img-ph-icon{font-size:2rem;}
