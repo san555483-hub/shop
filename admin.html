@@ -405,6 +405,27 @@ tr:hover td{background:rgba(61,43,31,.03);}
   <div class="tab-pane" id="pane-orders">
     <div class="pane-inner">
       <div class="card">
+        <div class="card-head"><h3>➕ 手動新增現場訂單</h3></div>
+        <div class="card-body">
+          <p style="font-size:.72rem;color:var(--mid);font-family:'Noto Sans TC',sans-serif;margin-bottom:14px;line-height:1.6">現場購買、LINE 私訊訂購等未透過網站的訂單，手動新增後顧客可用電話查詢消費紀錄。</p>
+          <div class="form-grid">
+            <div class="form-group"><label class="form-label">姓名 *</label><input class="form-input" type="text" id="mo-name" placeholder="顧客姓名"></div>
+            <div class="form-group"><label class="form-label">電話 *</label><input class="form-input" type="tel" id="mo-phone" placeholder="0912345678"></div>
+          </div>
+          <div class="form-group"><label class="form-label">商品說明 *</label><input class="form-input" type="text" id="mo-items" placeholder="例：香氛系列保濕洗髮×1、香水髮膜×1"></div>
+          <div class="form-grid">
+            <div class="form-group"><label class="form-label">金額 *</label><input class="form-input" type="number" id="mo-total" placeholder="0"></div>
+            <div class="form-group"><label class="form-label">付款方式</label><select class="form-select" id="mo-pay"><option>現金</option><option>街口支付</option><option>iPASS</option><option>轉帳</option><option>LINE Pay</option></select></div>
+          </div>
+          <div class="form-grid">
+            <div class="form-group"><label class="form-label">配送方式</label><select class="form-select" id="mo-ship"><option>到店取貨</option><option>居家宅配</option><option>超商取貨</option><option>黑貓宅配</option></select></div>
+            <div class="form-group"><label class="form-label">備註</label><input class="form-input" type="text" id="mo-note" placeholder="選填"></div>
+          </div>
+          <button class="btn btn-dark" onclick="addManualOrder()">➕ 新增訂單</button>
+          <div id="mo-msg" class="msg-box"></div>
+        </div>
+      </div>
+      <div class="card">
         <div class="card-head"><h3>🛍️ 購物訂單查看</h3><button class="btn btn-outline" style="color:#fff;border-color:rgba(255,255,255,.4);" onclick="loadOrders()">🔄 重新載入</button></div>
         <div class="card-body">
           <div class="search-bar">
@@ -491,7 +512,7 @@ function filterBookingTable(){
   });
   document.getElementById('booking-tbody').innerHTML=filtered.map(b=>`<tr>
     <td style="font-size:.62rem;color:#aaa;">${b.id}</td>
-    <td>${b.date}</td><td><strong>${b.time}</strong></td>
+    <td>${fmtDate(b.date)}</td><td><strong>${b.time}</strong></td>
     <td>${b.name}</td><td>${b.phone}</td>
     <td>${b.service}${b.priority?'<br><span style="font-size:.6rem;color:var(--gold)">⭐加價</span>':''}</td>
     <td><span class="status-badge ${sm[b.status]||''}">${b.status}</span></td>
@@ -500,6 +521,24 @@ function filterBookingTable(){
       <option value="">改狀態</option><option>待確認</option><option>已確認</option><option>已完成</option><option>已取消</option>
     </select></td>
   </tr>`).join('')||'<tr><td colspan="9" style="text-align:center;color:#aaa;padding:24px;">無資料</td></tr>';
+}
+
+// 日期格式修正（處理 Google Sheet 傳回的各種格式）
+function fmtDate(val){
+  if(!val) return '';
+  const s = String(val);
+  // 已是 yyyy-MM-dd 格式
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  // JS Date 字串格式
+  try{
+    const d = new Date(s);
+    if(!isNaN(d.getTime())){
+      // 1899 年是 Sheet 的 0 日期，代表資料有問題
+      if(d.getFullYear() < 1970) return s;
+      return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    }
+  }catch(_){}
+  return s;
 }
 async function updateBookingStatus(id,status){
   if(!status)return;
@@ -804,6 +843,32 @@ function filterOrderTable(){
     <td style="font-size:.7rem;">${o.shipping||''}</td>
     <td style="font-size:.68rem;color:var(--mid);">${o.note||''}</td>
   </tr>`).join('')||'<tr><td colspan="9" style="text-align:center;color:#aaa;padding:24px;">無訂單資料</td></tr>';
+}
+
+async function addManualOrder(){
+  const name=document.getElementById('mo-name').value.trim();
+  const phone=document.getElementById('mo-phone').value.trim();
+  const items=document.getElementById('mo-items').value.trim();
+  const total=document.getElementById('mo-total').value.trim();
+  if(!name||!phone||!items||!total){showMsg('mo-msg','請填寫姓名、電話、商品說明、金額','err');return;}
+  showMsg('mo-msg','新增中…','loading');
+  const now=new Date();
+  const twTime=now.toLocaleString('zh-TW',{timeZone:'Asia/Taipei'});
+  const ymd=now.getFullYear().toString().slice(2)+String(now.getMonth()+1).padStart(2,'0')+String(now.getDate()).padStart(2,'0');
+  const orderNum='UNI-'+ymd+'-M'+(Math.floor(Math.random()*9000)+1000);
+  try{
+    const p=new URLSearchParams({
+      orderNum,time:twTime,items,total,
+      gift:'無',lineName:name,lineUid:'',phone,
+      shipping:document.getElementById('mo-ship').value,
+      address:'',note:document.getElementById('mo-note').value.trim(),
+      payMethod:document.getElementById('mo-pay').value,isVoucher:'false'
+    });
+    await fetch(GAS+'?'+p.toString());
+    showMsg('mo-msg','✅ 訂單 '+orderNum+' 已新增','ok');
+    ['mo-name','mo-phone','mo-items','mo-total','mo-note'].forEach(i=>document.getElementById(i).value='');
+    loadOrders();
+  }catch(e){showMsg('mo-msg','❌ 新增失敗：'+e.message,'err');}
 }
 </script>
 </body>
