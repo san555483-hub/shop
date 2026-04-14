@@ -630,17 +630,25 @@ async function unlockSlot(date,time){
 async function loadServices(){
   show('service-loading');document.getElementById('service-tbody').innerHTML='';
   try{
-    const r=await fetch(GAS+'?action=getServices&t='+Date.now());const d=await r.json();
+    const r=await fetch(GAS+'?action=getServices&t='+Date.now());
+    const text=await r.text();
+    let d;
+    try{ d=JSON.parse(text); }catch(pe){ hide('service-loading');showToast('GAS回傳格式錯誤');console.error('GAS raw:',text);return; }
     hide('service-loading');
-    document.getElementById('service-tbody').innerHTML=(d.services||[]).map(s=>`<tr>
-      <td>${s.category}</td><td><strong>${s.name}</strong></td>
-      <td><input type="text" value="${s.price}" onblur="updateService('${s.id}','price',this.value)" style="width:80px;font-size:.75rem;padding:3px 6px;border:1px solid var(--border);border-radius:3px;"></td>
+    const list=d.services||[];
+    if(!list.length){
+      document.getElementById('service-tbody').innerHTML='<tr><td colspan="7" style="text-align:center;color:#aaa;padding:24px;">無服務資料（GAS ok='+d.ok+'）</td></tr>';
+      return;
+    }
+    document.getElementById('service-tbody').innerHTML=list.map(s=>`<tr>
+      <td>${s.category||''}</td><td><strong>${s.name||''}</strong></td>
+      <td><input type="text" value="${s.price||''}" onblur="updateService('${s.id}','price',this.value)" style="width:80px;font-size:.75rem;padding:3px 6px;border:1px solid var(--border);border-radius:3px;"></td>
       <td style="font-size:.7rem;">${s.duration||''}</td>
-      <td style="font-size:.7rem;color:var(--mid);">${s.note||''}</td>
+      <td style="font-size:.7rem;color:var(--mid);max-width:120px;">${s.note||''}</td>
       <td><span style="color:${s.active?'var(--moss)':'#ccc'}">${s.active?'✅':'❌'}</span></td>
       <td><button class="btn btn-outline btn-sm" onclick="toggleService('${s.id}',${!s.active})">${s.active?'停用':'啟用'}</button></td>
-    </tr>`).join('')||'<tr><td colspan="7" style="text-align:center;color:#aaa;padding:24px;">無服務資料</td></tr>';
-  }catch(e){hide('service-loading');showToast('載入失敗');}
+    </tr>`).join('');
+  }catch(e){hide('service-loading');showToast('載入失敗：'+e.message);console.error(e);}
 }
 async function updateService(id,field,value){
   try{const r=await fetch(GAS+'?action=updateService&id='+encodeURIComponent(id)+'&'+field+'='+encodeURIComponent(value));const d=await r.json();if(d.status==='ok')showToast('✓ 已更新');else showToast('❌ 更新失敗');}
