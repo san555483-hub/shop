@@ -444,7 +444,7 @@ window.adminLogout=async()=>{
 </script>
 
 <script>
-const GAS='https://script.google.com/macros/s/AKfycbwFLBUwkVoxXOccvgUWdsbaMt4TmAorHHIQOEsWlek9rEGi1YzoMnZi2-JnBEOG56xmxw/exec';
+const GAS='https://script.google.com/macros/s/AKfycbyG9T1UodoV3Zzag9OtC7SQDTiS3DfsqZFE1i7PrXSGxg_AW5C_GvOcmVgNOvlL3g6WQQ/exec';
 
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2400);}
 function showMsg(id,msg,type){const el=document.getElementById(id);if(!el)return;el.textContent=msg;el.className='msg-box msg-'+(type==='ok'?'ok':type==='err'?'err':'loading');el.style.display='block';if(type!=='loading')setTimeout(()=>el.style.display='none',3500);}
