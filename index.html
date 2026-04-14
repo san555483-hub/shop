@@ -1698,14 +1698,35 @@ function chgQty(btn,d){
 }
 
 function addCart(btn){
+  // ── 先嘗試從 sessionStorage 補回 _lineUser（解決 module 非同步問題）──
   if(!window._lineUser){
-    showToast('請先登入 LINE 會員才能購買');
-    const bar = document.getElementById('line-bar');
-    bar.style.transition='background .2s';
-    bar.style.background='#06C755';
-    setTimeout(()=>bar.style.background='#04943e',400);
-    setTimeout(()=>bar.style.background='#06C755',800);
-    setTimeout(()=>bar.style.background='#04943e',1200);
+    const lineUserId = sessionStorage.getItem('line_userId');
+    const lineName   = sessionStorage.getItem('line_name');
+    if(lineUserId && lineName){
+      window._lineUser = { displayName: lineName, userId: lineUserId, pic: sessionStorage.getItem('line_pic')||'' };
+    }
+  }
+  // ── 仍然沒有登入 → 強制引導登入，不讓加入購物車 ──
+  if(!window._lineUser){
+    showToast('請先登入 LINE 會員才能購買 🔒');
+    // 彈出登入提示浮層
+    const exist = document.getElementById('login-prompt-overlay');
+    if(exist) { exist.style.display='flex'; return; }
+    const overlay = document.createElement('div');
+    overlay.id = 'login-prompt-overlay';
+    overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:600;display:flex;align-items:center;justify-content:center;padding:20px;';
+    overlay.innerHTML=`<div style="background:#fff;border-radius:10px;padding:28px 24px;max-width:320px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.3);">
+      <div style="font-size:2rem;margin-bottom:10px;">🔒</div>
+      <h3 style="font-family:'Noto Serif TC',serif;font-size:1.05rem;color:#3d2b1f;margin-bottom:8px;">請先登入 LINE 會員</h3>
+      <p style="font-size:.76rem;color:#7a6a60;font-family:'Noto Sans TC',sans-serif;line-height:1.7;margin-bottom:18px;">登入後才能加入購物車與結帳，<br>同時享有會員專屬優惠與購物紀錄。</p>
+      <button onclick="lineLogin();document.getElementById('login-prompt-overlay').style.display='none';" style="width:100%;padding:12px;background:#06C755;color:#fff;border:none;border-radius:6px;font-family:'Noto Serif TC',serif;font-size:.9rem;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px;">
+        <svg viewBox="0 0 24 24" fill="#fff" width="18" height="18"><path d="M12 2C6.48 2 2 6.03 2 11c0 3.13 1.73 5.88 4.36 7.6-.19.68-.7 2.49-.8 2.88-.12.48.18.47.38.34.16-.1 2.12-1.43 2.99-2.01.65.09 1.36.14 2.07.14 5.52 0 10-4.03 10-9S17.52 2 12 2z"/></svg>
+        LINE 會員登入
+      </button>
+      <button onclick="document.getElementById('login-prompt-overlay').style.display='none';" style="width:100%;padding:10px;background:none;border:1.5px solid #ddd;color:#aaa;border-radius:6px;font-family:'Noto Sans TC',sans-serif;font-size:.78rem;cursor:pointer;">稍後再說</button>
+    </div>`;
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', e=>{ if(e.target===overlay) overlay.style.display='none'; });
     return;
   }
   const card = btn.closest('.product-card');
@@ -1796,14 +1817,42 @@ function toggleCart(){
 
 function goCheckoutFromCart(){
   if(!cart.length) return;
-  // 同時檢查 window._lineUser 和 sessionStorage（解決 module 非同步問題）
-  const lineUserId = sessionStorage.getItem('line_userId');
-  const lineName   = sessionStorage.getItem('line_name');
-  if(!window._lineUser && lineUserId && lineName){
-    // module 還沒設好，手動補回
-    window._lineUser = { displayName: lineName, userId: lineUserId, pic: sessionStorage.getItem('line_pic')||'' };
+  // sessionStorage 備援（解決 module 非同步問題）
+  if(!window._lineUser){
+    const lineUserId = sessionStorage.getItem('line_userId');
+    const lineName   = sessionStorage.getItem('line_name');
+    if(lineUserId && lineName){
+      window._lineUser = { displayName: lineName, userId: lineUserId, pic: sessionStorage.getItem('line_pic')||'' };
+    }
   }
-  if(!window._lineUser){ showToast('請先登入 LINE 才能結帳'); return; }
+  if(!window._lineUser){
+    // 觸發同一個登入浮層
+    const btn = document.createElement('button');
+    btn.onclick = () => { addCart({closest:()=>null, dataset:{pid:'__login__'}}); };
+    // 直接呼叫 addCart 觸發登入浮層
+    const fakeBtn = { closest: () => null, dataset: { pid: null } };
+    const overlay = document.getElementById('login-prompt-overlay');
+    if(overlay){ overlay.style.display='flex'; }
+    else {
+      showToast('請先登入 LINE 才能結帳 🔒');
+      const ov = document.createElement('div');
+      ov.id='login-prompt-overlay';
+      ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:600;display:flex;align-items:center;justify-content:center;padding:20px;';
+      ov.innerHTML=`<div style="background:#fff;border-radius:10px;padding:28px 24px;max-width:320px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.3);">
+        <div style="font-size:2rem;margin-bottom:10px;">🔒</div>
+        <h3 style="font-family:'Noto Serif TC',serif;font-size:1.05rem;color:#3d2b1f;margin-bottom:8px;">請先登入 LINE 會員</h3>
+        <p style="font-size:.76rem;color:#7a6a60;font-family:'Noto Sans TC',sans-serif;line-height:1.7;margin-bottom:18px;">登入後才能加入購物車與結帳，<br>同時享有會員專屬優惠與購物紀錄。</p>
+        <button onclick="lineLogin();document.getElementById('login-prompt-overlay').style.display='none';" style="width:100%;padding:12px;background:#06C755;color:#fff;border:none;border-radius:6px;font-family:'Noto Serif TC',serif;font-size:.9rem;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px;">
+          <svg viewBox="0 0 24 24" fill="#fff" width="18" height="18"><path d="M12 2C6.48 2 2 6.03 2 11c0 3.13 1.73 5.88 4.36 7.6-.19.68-.7 2.49-.8 2.88-.12.48.18.47.38.34.16-.1 2.12-1.43 2.99-2.01.65.09 1.36.14 2.07.14 5.52 0 10-4.03 10-9S17.52 2 12 2z"/></svg>
+          LINE 會員登入
+        </button>
+        <button onclick="document.getElementById('login-prompt-overlay').style.display='none';" style="width:100%;padding:10px;background:none;border:1.5px solid #ddd;color:#aaa;border-radius:6px;font-family:'Noto Sans TC',sans-serif;font-size:.78rem;cursor:pointer;">稍後再說</button>
+      </div>`;
+      document.body.appendChild(ov);
+      ov.addEventListener('click', e=>{ if(e.target===ov) ov.style.display='none'; });
+    }
+    return;
+  }
   toggleCart();
   goStep(4);
 }
@@ -1942,12 +1991,23 @@ async function showTransferInfo(){
 }
 
 function submitOrderToSheet(orderNum,total,items,gift,phone,shipping,address,note,method){
-  const lineName  = window._lineUser ? window._lineUser.displayName : '未登入';
-  const lineUid   = window._lineUser ? ('line_'+window._lineUser.userId) : '';
+  const lineName  = window._lineUser ? window._lineUser.displayName : (sessionStorage.getItem('line_name')||'未登入');
+  const lineUserId= window._lineUser ? window._lineUser.userId : (sessionStorage.getItem('line_userId')||'');
+  const lineUid   = lineUserId ? ('line_'+lineUserId) : '';
   const isVoucher = items.includes('服務券')||items.includes('套餐');
   const payStr    = method==='jko'?'街口':method==='ipass'?'iPASS':'轉帳';
   const params    = new URLSearchParams({orderNum, time:new Date().toLocaleString('zh-TW',{timeZone:'Asia/Taipei'}), items, total, gift:gift||'無', lineName, lineUid, phone, shipping, address, note, payMethod:payStr, isVoucher:String(isVoucher)});
   fetch(GAS_URL+'?'+params.toString()).catch(()=>{});
+
+  // ── 結帳時同步綁定 UID 到主系統顧客表 + 尊爵 Sheet ──
+  if(lineUserId && phone){
+    // 主系統：電話 → 綁定 LINE UID
+    const bindParams = new URLSearchParams({
+      action: 'bindByPhone',
+      phone, uid: lineUid, displayName: lineName
+    });
+    fetch(GAS_URL+'?'+bindParams.toString()).catch(()=>{});
+  }
 }
 
 function closeOrderModal(){
