@@ -1987,8 +1987,9 @@ function saveDiscounts(){
 async function _saveSettingsToCloud(data){
   try{
     const params = new URLSearchParams({ action:'saveSettings' });
-    if(data.giftOptions)   params.set('giftOptions',   JSON.stringify(data.giftOptions));
-    if(data.discountRules) params.set('discountRules',  JSON.stringify(data.discountRules));
+    if(data.giftOptions)          params.set('giftOptions',          JSON.stringify(data.giftOptions));
+    if(data.discountRules)        params.set('discountRules',         JSON.stringify(data.discountRules));
+    if(data.sampleSeriesOptions)  params.set('sampleSeriesOptions',   JSON.stringify(data.sampleSeriesOptions));
     const r = await fetch(GAS_URL+'?'+params.toString());
     const d = await r.json();
     return d.ok;
@@ -2000,8 +2001,10 @@ async function _loadSettingsFromCloud(){
     const r = await fetch(GAS_URL+'?action=getSettings');
     const d = await r.json();
     if(d.ok && d.settings){
-      if(Array.isArray(d.settings.giftOptions)   && d.settings.giftOptions.length)   giftOptions   = d.settings.giftOptions;
-      if(Array.isArray(d.settings.discountRules) && d.settings.discountRules.length) discountRules = d.settings.discountRules;
+      if(Array.isArray(d.settings.giftOptions)          && d.settings.giftOptions.length)          giftOptions          = d.settings.giftOptions;
+      if(Array.isArray(d.settings.discountRules)         && d.settings.discountRules.length)         discountRules        = d.settings.discountRules;
+      if(Array.isArray(d.settings.sampleSeriesOptions)   && d.settings.sampleSeriesOptions.length)   sampleSeriesOptions  = d.settings.sampleSeriesOptions;
+      renderSampleSeriesSelect();
       updateCart();
     }
   }catch(e){ console.warn('載入設定失敗',e); }
@@ -2161,7 +2164,10 @@ function saveSampleSeries(){
   sampleSeriesOptions = Array.from(document.querySelectorAll('[id^="ss-"]')).map(x=>x.value.trim()).filter(Boolean);
   renderSampleSeriesSelect();
   closeModal('sample-edit');
-  showToast('✓ 體驗包系列已更新');
+  showToast('⏳ 儲存中…');
+  _saveSettingsToCloud({ sampleSeriesOptions }).then(ok=>{
+    showToast(ok ? '✓ 體驗包系列已存雲端' : '⚠️ 雲端儲存失敗，本機已更新');
+  });
 }
 
 // ══════════════════════════════════════════════
