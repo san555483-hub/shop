@@ -412,7 +412,11 @@ tr:hover td{background:rgba(61,43,31,.03);}
             <div class="form-group"><label class="form-label">姓名 *</label><input class="form-input" type="text" id="mo-name" placeholder="顧客姓名"></div>
             <div class="form-group"><label class="form-label">電話 *</label><input class="form-input" type="tel" id="mo-phone" placeholder="0912345678"></div>
           </div>
-          <div class="form-group"><label class="form-label">商品說明 *</label><input class="form-input" type="text" id="mo-items" placeholder="例：香氛系列保濕洗髮×1、香水髮膜×1"></div>
+          <div class="form-group">
+            <label class="form-label">商品明細 *</label>
+            <div id="mo-item-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:8px;"></div>
+            <button type="button" onclick="addMoItemRow()" style="width:100%;padding:9px;border:1.5px dashed var(--border);border-radius:3px;background:none;color:var(--mid);font-size:.78rem;cursor:pointer;font-family:'Noto Sans TC',sans-serif;transition:all .2s;">＋ 新增商品行</button>
+          </div>
           <div class="form-grid">
             <div class="form-group"><label class="form-label">金額 *</label><input class="form-input" type="number" id="mo-total" placeholder="0"></div>
             <div class="form-group"><label class="form-label">付款方式</label><select class="form-select" id="mo-pay"><option>現金</option><option>街口支付</option><option>iPASS</option><option>轉帳</option><option>LINE Pay</option></select></div>
@@ -846,12 +850,99 @@ function filterOrderTable(){
   </tr>`).join('')||'<tr><td colspan="9" style="text-align:center;color:#aaa;padding:24px;">無訂單資料</td></tr>';
 }
 
+// 購物系統GAS endpoint（商品清單來源）
+const GAS_SHOP = 'https://script.google.com/macros/s/AKfycbwFLBUwkVoxXOccvgUWdsbaMt4TmAorHHIQOEsWlek9rEGi1YzoMnZi2-JnBEOG56xmxw/exec';
+
+// 商品清單快取
+let _moProductList = [];
+
+async function loadMoProducts(){
+  if(_moProductList.length) return _moProductList;
+  try{
+    const r = await fetch(GAS_SHOP+'?action=getProducts');
+    const d = await r.json();
+    if(d.ok && d.products) _moProductList = d.products.filter(p=>p.name);
+  }catch(_){}
+  return _moProductList;
+}
+
+async function addMoItemRow(){
+  await loadMoProducts();
+  const list = document.getElementById('mo-item-list');
+  const today = new Date().toISOString().slice(0,10);
+  const opts = _moProductList.map(p=>`<option value="${p.name}" data-price="${p.price}">${p.name}（NT$${Number(p.price).toLocaleString()}）</option>`).join('');
+  const row = document.createElement('div');
+  row.style.cssText='display:flex;gap:6px;align-items:center;background:#faf8f5;border:1px solid var(--border);border-radius:4px;padding:8px;flex-wrap:wrap;';
+  row.innerHTML=`
+    <input type="date" value="${today}" style="flex:0 0 130px;padding:7px 8px;border:1.5px solid var(--border);border-radius:3px;font-size:.78rem;font-family:'Noto Sans TC',sans-serif;outline:none;background:#fff;">
+    <select onchange="updateMoRowPrice(this)" style="flex:1;min-width:160px;padding:7px 8px;border:1.5px solid var(--border);border-radius:3px;font-size:.78rem;font-family:'Noto Sans TC',sans-serif;outline:none;background:#fff;">
+      <option value="" data-price="0">— 選擇商品 —</option>
+      ${opts}
+      <option value="__custom__" data-price="0">✏️ 手動輸入</option>
+    </select>
+    <input type="text" placeholder="手動輸入品項" class="mo-custom-input" style="flex:1;min-width:120px;display:none;padding:7px 8px;border:1.5px solid var(--border);border-radius:3px;font-size:.78rem;font-family:'Noto Sans TC',sans-serif;outline:none;background:#fff;">
+    <input type="number" placeholder="數量" min="1" value="1" oninput="calcMoTotal()" style="flex:0 0 58px;padding:7px 6px;border:1.5px solid var(--border);border-radius:3px;font-size:.78rem;text-align:center;outline:none;background:#fff;">
+    <span class="mo-row-price" style="flex:0 0 80px;font-size:.75rem;color:var(--mid);font-family:'Noto Sans TC',sans-serif;text-align:right;">NT$ 0</span>
+    <button onclick="this.closest('div').remove();calcMoTotal();" style="flex:0 0 28px;height:28px;border:none;background:#f0e8e8;color:#c0392b;border-radius:3px;cursor:pointer;font-size:.9rem;">✕</button>
+  `;
+  list.appendChild(row);
+  calcMoTotal();
+}
+
+function updateMoRowPrice(sel){
+  const row = sel.closest('div');
+  const customInput = row.querySelector('.mo-custom-input');
+  if(sel.value === '__custom__'){
+    customInput.style.display='block';
+    sel.style.display='none';
+  }
+  calcMoTotal();
+}
+
+function calcMoTotal(){
+  let total = 0;
+  document.querySelectorAll('#mo-item-list > div').forEach(row=>{
+    const sel = row.querySelector('select');
+    const qty = Number(row.querySelector('input[type=number]').value)||1;
+    const opt = sel && sel.selectedOptions[0];
+    const price = opt ? Number(opt.dataset.price)||0 : 0;
+    const rowTotal = price * qty;
+    const priceSpan = row.querySelector('.mo-row-price');
+    if(priceSpan) priceSpan.textContent = 'NT$ '+rowTotal.toLocaleString();
+    total += rowTotal;
+  });
+  const totalEl = document.getElementById('mo-total');
+  if(totalEl && total > 0) totalEl.value = total;
+}
+
+function getMoItemsText(){
+  const rows = document.querySelectorAll('#mo-item-list > div');
+  if(!rows.length) return '';
+  const parts = [];
+  rows.forEach(row=>{
+    const sel = row.querySelector('select');
+    const customInput = row.querySelector('.mo-custom-input');
+    const qty = Number(row.querySelector('input[type=number]').value)||1;
+    const date = row.querySelector('input[type=date]').value;
+    let name = '';
+    if(sel && sel.style.display==='none'){
+      name = customInput ? customInput.value.trim() : '';
+    } else if(sel && sel.value && sel.value !== '__custom__'){
+      name = sel.value;
+    }
+    if(name) parts.push('['+date+'] '+name+'×'+qty);
+  });
+  return parts.join('、');
+}
+
 async function addManualOrder(){
   const name=document.getElementById('mo-name').value.trim();
   const phone=document.getElementById('mo-phone').value.trim();
-  const items=document.getElementById('mo-items').value.trim();
+  const items=getMoItemsText();
   const total=document.getElementById('mo-total').value.trim();
-  if(!name||!phone||!items||!total){showMsg('mo-msg','請填寫姓名、電話、商品說明、金額','err');return;}
+  if(!name||!phone){showMsg('mo-msg','請填寫姓名和電話','err');return;}
+  if(!items){showMsg('mo-msg','請至少新增一項商品','err');return;}
+  if(!total){showMsg('mo-msg','請填寫金額','err');return;}
   showMsg('mo-msg','新增中…','loading');
   const now=new Date();
   const twTime=now.toLocaleString('zh-TW',{timeZone:'Asia/Taipei'});
@@ -871,8 +962,9 @@ async function addManualOrder(){
     const r=await fetch(GAS+'?'+p.toString());
     const d=await r.json();
     if(d.ok){
-      showMsg('mo-msg','✅ 訂單 '+(d.orderNum||orderNum)+' 已儲存，顧客可用電話查詢消費紀錄','ok');
-      ['mo-name','mo-phone','mo-items','mo-total','mo-note'].forEach(i=>document.getElementById(i).value='');
+      showMsg('mo-msg','✅ 訂單 '+(d.orderNum||orderNum)+' 已儲存','ok');
+      ['mo-name','mo-phone','mo-total','mo-note'].forEach(i=>document.getElementById(i).value='');
+      document.getElementById('mo-item-list').innerHTML='';
       loadOrders();
     } else {
       showMsg('mo-msg','❌ 儲存失敗：'+(d.msg||''),'err');
