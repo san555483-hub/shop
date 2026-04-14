@@ -556,6 +556,7 @@ footer{background:var(--bark);color:rgba(255,255,255,.45);text-align:center;padd
       sessionStorage.setItem('line_pic',profile.pictureUrl||'');
       sessionStorage.setItem('line_userId',profile.userId);
       window._lineUser={displayName:profile.displayName,userId:profile.userId,pic:profile.pictureUrl||''};
+      maxUnlocked=4;
       renderLineBar({name:profile.displayName,pic:profile.pictureUrl||''});
       showToast('✓ 歡迎！'+profile.displayName);
       // Firestore 也順便記錄（失敗不影響登入）
@@ -592,7 +593,7 @@ footer{background:var(--bark);color:rgba(255,255,255,.45);text-align:center;padd
     // 廣播跑馬燈
     loadMarqueeBanner();
     const name=sessionStorage.getItem('line_name'),pic=sessionStorage.getItem('line_pic'),userId=sessionStorage.getItem('line_userId');
-    if(name&&userId){window._lineUser={displayName:name,userId,pic:pic||''};renderLineBar({name,pic});}
+    if(name&&userId){window._lineUser={displayName:name,userId,pic:pic||''};maxUnlocked=4;renderLineBar({name,pic});}
     else{window._lineUser=null;renderLineBar(null);}
   });
 
