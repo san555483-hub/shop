@@ -540,24 +540,28 @@ footer{background:var(--bark);color:rgba(255,255,255,.45);text-align:center;padd
     history.replaceState({},'',location.pathname);
     showToast('LINE 登入中…');
     try{
-      // 用 GET 方式呼叫 GAS 避免 CORS 問題
+      // GAS 換 LINE access token
       const tokenParams=new URLSearchParams({action:'lineToken',code,verifier:sessionStorage.getItem('line_verifier'),redirect:REDIRECT_URI,channelId:LINE_CHANNEL_ID});
       const tokenRes=await fetch(GAS_URL_AUTH+'?'+tokenParams.toString());
       const tokenData=await tokenRes.json();
-      if(!tokenData.access_token)throw new Error('token 交換失敗：'+(tokenData.error||''));
+      if(!tokenData.access_token)throw new Error('token 交換失敗：'+(tokenData.error||JSON.stringify(tokenData)));
+      // 直接用 access token 取得 LINE profile
       const profileRes=await fetch('https://api.line.me/v2/profile',{headers:{Authorization:'Bearer '+tokenData.access_token}});
       const profile=await profileRes.json();
-      const ctParams=new URLSearchParams({action:'customToken',lineUserId:profile.userId,displayName:profile.displayName,pictureUrl:profile.pictureUrl||''});
-      const ctRes=await fetch(GAS_URL_AUTH+'?'+ctParams.toString());
-      const ctData=await ctRes.json();
-      if(!ctData.customToken)throw new Error('Custom Token 失敗');
-      await signInWithCustomToken(auth,ctData.customToken);
+      if(!profile.userId)throw new Error('無法取得 LINE 個人資料');
+      // 存入 sessionStorage（不需要 Firebase Custom Token）
       const uid='line_'+profile.userId;
-      await setDoc(doc(db,'customers',uid),{displayName:profile.displayName,pictureUrl:profile.pictureUrl||'',lineUserId:profile.userId,updatedAt:new Date().toISOString()},{merge:true});
-      sessionStorage.setItem('line_uid',uid);sessionStorage.setItem('line_name',profile.displayName);sessionStorage.setItem('line_pic',profile.pictureUrl||'');sessionStorage.setItem('line_userId',profile.userId);
+      sessionStorage.setItem('line_uid',uid);
+      sessionStorage.setItem('line_name',profile.displayName);
+      sessionStorage.setItem('line_pic',profile.pictureUrl||'');
+      sessionStorage.setItem('line_userId',profile.userId);
       window._lineUser={displayName:profile.displayName,userId:profile.userId,pic:profile.pictureUrl||''};
-      renderLineBar({name:profile.displayName,pic:profile.pictureUrl});
+      renderLineBar({name:profile.displayName,pic:profile.pictureUrl||''});
       showToast('✓ 歡迎！'+profile.displayName);
+      // Firestore 也順便記錄（失敗不影響登入）
+      try{
+        await setDoc(doc(db,'customers',uid),{displayName:profile.displayName,pictureUrl:profile.pictureUrl||'',lineUserId:profile.userId,updatedAt:new Date().toISOString()},{merge:true});
+      }catch(_){}
     }catch(e){showToast('LINE 登入失敗：'+e.message);}
   }
 
