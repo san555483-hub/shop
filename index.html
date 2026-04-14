@@ -1796,6 +1796,13 @@ function toggleCart(){
 
 function goCheckoutFromCart(){
   if(!cart.length) return;
+  // 同時檢查 window._lineUser 和 sessionStorage（解決 module 非同步問題）
+  const lineUserId = sessionStorage.getItem('line_userId');
+  const lineName   = sessionStorage.getItem('line_name');
+  if(!window._lineUser && lineUserId && lineName){
+    // module 還沒設好，手動補回
+    window._lineUser = { displayName: lineName, userId: lineUserId, pic: sessionStorage.getItem('line_pic')||'' };
+  }
   if(!window._lineUser){ showToast('請先登入 LINE 才能結帳'); return; }
   toggleCart();
   goStep(4);
@@ -1805,6 +1812,12 @@ function goCheckoutFromCart(){
 // Step 4：結帳頁
 // ══════════════════════════════════════════════
 function renderCheckoutPage(){
+  // 同時檢查 window._lineUser 和 sessionStorage（解決 module 非同步問題）
+  const lineUserId = sessionStorage.getItem('line_userId');
+  const lineName   = sessionStorage.getItem('line_name');
+  if(!window._lineUser && lineUserId && lineName){
+    window._lineUser = { displayName: lineName, userId: lineUserId, pic: sessionStorage.getItem('line_pic')||'' };
+  }
   if(!window._lineUser){ showToast('請先登入 LINE 才能結帳'); goStep(3); return; }
   // 自動帶入已填電話到購物金查詢欄
   const existPhone = document.getElementById('inp-phone').value.trim();
@@ -1987,9 +2000,8 @@ function saveDiscounts(){
 async function _saveSettingsToCloud(data){
   try{
     const params = new URLSearchParams({ action:'saveSettings' });
-    if(data.giftOptions)          params.set('giftOptions',          JSON.stringify(data.giftOptions));
-    if(data.discountRules)        params.set('discountRules',         JSON.stringify(data.discountRules));
-    if(data.sampleSeriesOptions)  params.set('sampleSeriesOptions',   JSON.stringify(data.sampleSeriesOptions));
+    if(data.giftOptions)   params.set('giftOptions',   JSON.stringify(data.giftOptions));
+    if(data.discountRules) params.set('discountRules',  JSON.stringify(data.discountRules));
     const r = await fetch(GAS_URL+'?'+params.toString());
     const d = await r.json();
     return d.ok;
@@ -2001,10 +2013,8 @@ async function _loadSettingsFromCloud(){
     const r = await fetch(GAS_URL+'?action=getSettings');
     const d = await r.json();
     if(d.ok && d.settings){
-      if(Array.isArray(d.settings.giftOptions)          && d.settings.giftOptions.length)          giftOptions          = d.settings.giftOptions;
-      if(Array.isArray(d.settings.discountRules)         && d.settings.discountRules.length)         discountRules        = d.settings.discountRules;
-      if(Array.isArray(d.settings.sampleSeriesOptions)   && d.settings.sampleSeriesOptions.length)   sampleSeriesOptions  = d.settings.sampleSeriesOptions;
-      renderSampleSeriesSelect();
+      if(Array.isArray(d.settings.giftOptions)   && d.settings.giftOptions.length)   giftOptions   = d.settings.giftOptions;
+      if(Array.isArray(d.settings.discountRules) && d.settings.discountRules.length) discountRules = d.settings.discountRules;
       updateCart();
     }
   }catch(e){ console.warn('載入設定失敗',e); }
@@ -2164,10 +2174,7 @@ function saveSampleSeries(){
   sampleSeriesOptions = Array.from(document.querySelectorAll('[id^="ss-"]')).map(x=>x.value.trim()).filter(Boolean);
   renderSampleSeriesSelect();
   closeModal('sample-edit');
-  showToast('⏳ 儲存中…');
-  _saveSettingsToCloud({ sampleSeriesOptions }).then(ok=>{
-    showToast(ok ? '✓ 體驗包系列已存雲端' : '⚠️ 雲端儲存失敗，本機已更新');
-  });
+  showToast('✓ 體驗包系列已更新');
 }
 
 // ══════════════════════════════════════════════
