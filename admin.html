@@ -473,7 +473,11 @@ tr:hover td{background:rgba(61,43,31,.03);}
               <input class="form-input" type="text" id="cp-note" placeholder="例：劉曦璟 週年慶">
             </div>
           </div>
-          <button class="btn btn-gold" onclick="addCoupon()">🎫 產生折扣券</button>
+          <div class="form-group">
+              <label class="form-label">顧客電話 *（用於 LINE 通知）</label>
+              <input class="form-input" type="tel" id="cp-phone" placeholder="0912345678">
+            </div>
+          <button class="btn btn-gold" onclick="addCoupon()">🎫 產生並通知顧客</button>
           <div id="cp-add-msg" class="msg-box"></div>
         </div>
       </div>
@@ -1042,21 +1046,32 @@ async function addCoupon(){
   const amount = document.getElementById('cp-amount').value.trim();
   const expiry = document.getElementById('cp-expiry').value;
   const note   = document.getElementById('cp-note').value.trim();
+  const phone  = document.getElementById('cp-phone').value.trim();
   if(!amount){showMsg('cp-add-msg','請填寫面額','err');return;}
+  if(!phone){showMsg('cp-add-msg','請填寫顧客電話','err');return;}
   showMsg('cp-add-msg','產生中…','loading');
   try{
+    // 1. 產生券碼（購物系統GAS）
     const p = new URLSearchParams({action:'addCoupon', type, amount, expiry, note});
     const r = await fetch(GAS_SHOP+'?'+p.toString());
     const d = await r.json();
-    if(d.ok){
-      showMsg('cp-add-msg','✅ 折扣券已產生！券碼：'+d.code+'　面額：NT$'+amount,'ok');
-      document.getElementById('cp-amount').value='';
-      document.getElementById('cp-note').value='';
-      document.getElementById('cp-expiry').value='';
-      loadCoupons();
+    if(!d.ok){showMsg('cp-add-msg','❌ '+(d.msg||'失敗'),'err');return;}
+    const code = d.code;
+    // 2. 推送LINE通知（主系統GAS查UID）
+    showMsg('cp-add-msg','券碼已產生，推送LINE通知中…','loading');
+    const p2 = new URLSearchParams({action:'sendCouponNotify', phone, code, type, amount, expiry, note});
+    const r2 = await fetch(GAS+'?'+p2.toString());
+    const d2 = await r2.json();
+    if(d2.ok){
+      showMsg('cp-add-msg','✅ 券碼：'+code+'　NT$'+amount+'　已推送LINE通知給顧客','ok');
     } else {
-      showMsg('cp-add-msg','❌ '+(d.msg||'失敗'),'err');
+      showMsg('cp-add-msg','✅ 券碼：'+code+'　NT$'+amount+'　已產生（LINE通知失敗：'+d2.msg+'）','ok');
     }
+    document.getElementById('cp-amount').value='';
+    document.getElementById('cp-note').value='';
+    document.getElementById('cp-expiry').value='';
+    document.getElementById('cp-phone').value='';
+    loadCoupons();
   }catch(e){showMsg('cp-add-msg','❌ 網路錯誤','err');}
 }
 

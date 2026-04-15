@@ -283,7 +283,11 @@ tr:hover td{background:var(--cream);}
       <div><label>備註（顧客姓名或用途）</label><input type="text" id="cp-note" placeholder="例：劉曦璟 週年慶"></div>
     </div>
     <div id="cp-add-msg"></div>
-    <button class="btn btn-gold btn-full" onclick="addCouponVip()">🎫 產生折扣券</button>
+    <div style="margin-top:10px;">
+      <label>顧客電話 *（用於 LINE 通知）</label>
+      <input type="tel" id="cp-phone" placeholder="0912345678">
+    </div>
+    <button class="btn btn-gold btn-full" onclick="addCouponVip()" style="margin-top:10px;">🎫 產生並通知顧客</button>
   </div>
   <div class="card">
     <div class="card-header"><div class="card-title"><div class="line"></div>折扣券列表</div><button class="btn btn-outline btn-sm" onclick="loadCouponsVip()">🔄 重新整理</button></div>
@@ -498,19 +502,32 @@ async function addCouponVip(){
   const amount=document.getElementById('cp-amount').value.trim();
   const expiry=document.getElementById('cp-expiry').value;
   const note=document.getElementById('cp-note').value.trim();
+  const phone=document.getElementById('cp-phone').value.trim();
   if(!amount){showMsg('cp-add-msg','面額必填','error');return;}
+  if(!phone){showMsg('cp-add-msg','請填寫顧客電話','error');return;}
   showMsg('cp-add-msg','<span class="spin"></span>產生中…','info');
   try{
+    // 1. 產生券碼（購物系統GAS）
     const p=new URLSearchParams({action:'addCoupon',type,amount,expiry,note});
     const r=await fetch(GAS_SHOP_URL+'?'+p.toString());
     const d=await r.json();
-    if(d.ok){
-      showMsg('cp-add-msg',`✅ 已產生！券碼：<strong>${d.code}</strong>　面額：NT$${Number(amount).toLocaleString()}`,'success');
-      document.getElementById('cp-amount').value='';
-      document.getElementById('cp-note').value='';
-      document.getElementById('cp-expiry').value='';
-      loadCouponsVip();
-    }else showMsg('cp-add-msg','❌ '+(d.msg||'失敗'),'error');
+    if(!d.ok){showMsg('cp-add-msg','❌ '+(d.msg||'失敗'),'error');return;}
+    const code=d.code;
+    // 2. 推送LINE通知（主系統GAS查UID）
+    showMsg('cp-add-msg','<span class="spin"></span>券碼已產生，推送LINE通知中…','info');
+    const p2=new URLSearchParams({action:'sendCouponNotify',phone,code,type,amount,expiry,note});
+    const r2=await fetch(GAS_URL+'?'+p2.toString());
+    const d2=await r2.json();
+    if(d2.ok){
+      showMsg('cp-add-msg',`✅ 券碼：<strong>${code}</strong>　NT$${Number(amount).toLocaleString()}　已推送LINE通知給顧客`,'success');
+    }else{
+      showMsg('cp-add-msg',`✅ 券碼：<strong>${code}</strong>　NT$${Number(amount).toLocaleString()}　已產生（LINE通知失敗：${d2.msg}）`,'success');
+    }
+    document.getElementById('cp-amount').value='';
+    document.getElementById('cp-note').value='';
+    document.getElementById('cp-expiry').value='';
+    document.getElementById('cp-phone').value='';
+    loadCouponsVip();
   }catch(e){showMsg('cp-add-msg','連線失敗','error');}
 }
 
