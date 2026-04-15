@@ -1113,7 +1113,7 @@ async function addManualOrder(){
 let _couponTypes = [];
 
 async function loadCouponTypes(){
-  document.getElementById('ct-list').innerHTML='<div style="padding:8px;font-size:.78rem;color:#aaa;font-family:'Noto Sans TC',sans-serif;">載入中…</div>';
+  document.getElementById('ct-list').innerHTML=`<div style="padding:8px;font-size:.78rem;color:#aaa;font-family:'Noto Sans TC',sans-serif;">載入中…</div>`;
   try{
     const r = await fetch(GAS_SHOP+'?action=getCouponTypes&t='+Date.now());
     const d = await r.json();
@@ -1126,7 +1126,7 @@ async function loadCouponTypes(){
 function renderCouponTypeList(){
   const el = document.getElementById('ct-list');
   if(!_couponTypes.length){
-    el.innerHTML='<div style="padding:8px;font-size:.78rem;color:#aaa;font-family:'Noto Sans TC',sans-serif;">尚無類型，請新增</div>';
+    el.innerHTML=`<div style="padding:8px;font-size:.78rem;color:#aaa;font-family:'Noto Sans TC',sans-serif;">尚無類型，請新增</div>`;
     return;
   }
   el.innerHTML = _couponTypes.map(t=>`
