@@ -949,7 +949,7 @@ async function loadCredits(){
       // 建立時間格式化（去掉T和Z）
       const timeRaw=String(row['建立時間']||'');
       const timeDisplay=timeRaw.replace('T',' ').replace('.000Z','').substring(0,16);
-      return\`<tr>
+      return`<tr>
         <td>\${row['姓名']||''}</td>
         <td>\${displayPhone}</td>
         <td class="\${amt>=0?'credit-pos':'credit-neg'}">\${amt>=0?'+':''}\${amt.toLocaleString()}</td>
@@ -960,7 +960,7 @@ async function loadCredits(){
         <td style="font-size:.65rem;color:#aaa;">\${timeDisplay}</td>
         <td style="font-size:.72rem;color:\${noteColor};">\${note||'—'}</td>
         <td><button class="btn btn-danger btn-sm" onclick="deleteCredit(\${row._row},'\${row['姓名']||''}','\${displayPhone}')">刪除</button></td>
-      </tr>\`;
+      </tr>`;
     }).join('')||'<tr><td colspan="10" style="text-align:center;color:#aaa;padding:24px;">無儲值紀錄</td></tr>';
   }catch(e){hide('cr-loading');showToast('載入失敗');}
 }
