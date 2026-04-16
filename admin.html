@@ -970,7 +970,7 @@ async function deductCredit(){
   showMsg('cr-deduct-msg','扣款中…','loading');
   try{
     const p=new URLSearchParams({action:'deductCredit',phone,amount,note:document.getElementById('cr-deduct-note').value.trim()||'現場消費折抵'});
-    const r=await fetch(GAS+'?'+p.toString());const d=await r.json();
+    const r=await fetch(GAS,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:p.toString()});const d=await r.json();
     if(d.ok){
       showMsg('cr-deduct-msg',`✅ 扣款成功！剩餘餘額：NT$${d.remainBalance.toLocaleString()}`,'ok');
       loadCredits();
