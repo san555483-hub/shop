@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>UNI 進度追蹤</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;500;600&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #faf8f5;
+  --surface: #ffffff;
+  --border: #e8e0d5;
+  --gold: #c4a882;
+  --gold-dark: #a08660;
+  --text: #2a2420;
+  --muted: #8a7d72;
+  --light: #f0ebe4;
+  --red: #c0392b;
+  --pin: #e67e22;
+  --done: #95a5a6;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Noto Sans TC', sans-serif;
+  min-height: 100vh;
+  padding-bottom: 100px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* 頂部 */
+.header {
+  background: var(--text);
+  color: white;
+  text-align: center;
+  padding: 24px 20px 20px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+.header-logo {
+  font-family: 'Noto Serif TC', serif;
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: 3px;
+  margin-bottom: 4px;
+}
+.header-sub { font-size: 11px; letter-spacing: 2px; opacity: 0.6; }
+
+/* 容器 */
+.container { max-width: 520px; margin: 0 auto; padding: 16px; }
+
+/* 區塊標題 */
+.section-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 20px 0 8px;
+  padding: 0 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  letter-spacing: 1px;
+}
+.section-title:first-child { margin-top: 8px; }
+.section-title .count {
+  background: var(--light);
+  color: var(--muted);
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-left: auto;
+  font-weight: 500;
+}
+
+/* 任務卡片 */
+.todo-card {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  transition: all 0.2s;
+}
+.todo-card.pinned {
+  border-color: var(--pin);
+  background: #fff8f0;
+}
+.todo-card.done {
+  opacity: 0.6;
+  background: var(--light);
+}
+.todo-card.done .todo-title {
+  text-decoration: line-through;
+  color: var(--muted);
+}
+
+.todo-checkbox {
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--border);
+  border-radius: 50%;
+  flex-shrink: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  transition: all 0.2s;
+  background: var(--surface);
+  margin-top: 1px;
+}
+.todo-checkbox:active { transform: scale(0.9); }
+.todo-card.done .todo-checkbox {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: white;
+}
+
+.todo-content { flex: 1; min-width: 0; }
+.todo-tag {
+  display: inline-block;
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: var(--light);
+  color: var(--muted);
+  margin-bottom: 4px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+.todo-tag.red { background: #fde6e4; color: #c0392b; }
+.todo-tag.blue { background: #e3f2fd; color: #1976d2; }
+.todo-tag.purple { background: #f3e5f5; color: #7b1fa2; }
+.todo-tag.gray { background: var(--light); color: var(--muted); }
+.todo-title {
+  font-size: 14px;
+  line-height: 1.5;
+  word-break: break-word;
+  color: var(--text);
+}
+.todo-note {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 4px;
+  line-height: 1.5;
+}
+.todo-time {
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 4px;
+  opacity: 0.7;
+}
+
+.todo-actions { display: flex; gap: 6px; flex-shrink: 0; margin-top: 2px; }
+.todo-btn {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+.todo-btn:active { transform: scale(0.9); }
+.todo-btn:hover { background: var(--light); }
+.todo-btn.pin { color: var(--pin); }
+.todo-btn.del { color: var(--red); opacity: 0.5; }
+.todo-btn.del:hover { opacity: 1; }
+
+/* 空狀態 */
+.empty-state {
+  text-align: center;
+  padding: 30px 20px;
+  color: var(--muted);
+  font-size: 13px;
+  background: var(--surface);
+  border: 1.5px dashed var(--border);
+  border-radius: 10px;
+}
+
+/* 新增按鈕（浮動在底部） */
+.add-btn {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--text);
+  color: white;
+  border: none;
+  padding: 14px 28px;
+  border-radius: 30px;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: 'Noto Sans TC', sans-serif;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(42,36,32,0.3);
+  letter-spacing: 2px;
+  transition: all 0.2s;
+  z-index: 50;
+}
+.add-btn:active { transform: translateX(-50%) scale(0.95); }
+
+/* 彈窗 */
+.modal-overlay {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: none;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 200;
+  animation: fadeIn 0.2s;
+}
+.modal-overlay.active { display: flex; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.modal {
+  background: var(--surface);
+  width: 100%;
+  max-width: 520px;
+  border-radius: 16px 16px 0 0;
+  padding: 24px 20px 32px;
+  animation: slideUp 0.3s;
+}
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+.modal-title {
+  font-family: 'Noto Serif TC', serif;
+  font-size: 18px;
+  font-weight: 500;
+  margin-bottom: 16px;
+  text-align: center;
+}
+.modal-group { margin-bottom: 14px; }
+.modal-label { font-size: 12px; color: var(--muted); margin-bottom: 6px; display: block; }
+.modal-input, .modal-select, .modal-textarea {
+  width: 100%;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-size: 14px;
+  font-family: 'Noto Sans TC', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.2s;
+}
+.modal-input:focus, .modal-select:focus, .modal-textarea:focus { border-color: var(--gold); }
+.modal-textarea { resize: none; height: 70px; line-height: 1.5; }
+
+.tag-group { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+.tag-option {
+  padding: 8px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 20px;
+  font-size: 12px;
+  cursor: pointer;
+  background: var(--surface);
+  transition: all 0.2s;
+}
+.tag-option.selected {
+  border-color: var(--gold);
+  background: #fdf6ee;
+  color: var(--gold-dark);
+  font-weight: 500;
+}
+
+.modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+.btn {
+  flex: 1;
+  padding: 14px;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: 'Noto Sans TC', sans-serif;
+  font-weight: 500;
+  cursor: pointer;
+  letter-spacing: 1px;
+  transition: all 0.2s;
+}
+.btn-primary { background: var(--text); color: white; }
+.btn-secondary { background: var(--light); color: var(--muted); }
+.btn:active { transform: scale(0.97); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* 載入 */
+.loading-screen {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--muted);
+}
+.spinner {
+  width: 32px; height: 32px;
+  border: 2px solid var(--border);
+  border-top-color: var(--gold);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 12px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Toast 提示 */
+.toast {
+  position: fixed;
+  top: 80px; left: 50%;
+  transform: translateX(-50%);
+  background: var(--text);
+  color: white;
+  padding: 12px 24px;
+  border-radius: 24px;
+  font-size: 13px;
+  z-index: 500;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+}
+.toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-logo">📋 UNI 進度追蹤</div>
+  <div class="header-sub">TASK MANAGER</div>
+</div>
+
+<div class="container" id="mainContainer">
+  <div class="loading-screen" id="loadingScreen">
+    <div class="spinner"></div>
+    <div>載入中...</div>
+  </div>
+  <div id="todoContent" style="display:none;">
+    <!-- 置頂區 -->
+    <div id="pinnedSection" style="display:none;">
+      <div class="section-title">
+        🔥 今天必做
+        <span class="count" id="pinnedCount">0</span>
+      </div>
+      <div id="pinnedList"></div>
+    </div>
+
+    <!-- 待辦區 -->
+    <div>
+      <div class="section-title">
+        📋 待辦
+        <span class="count" id="todoCount">0</span>
+      </div>
+      <div id="todoList"></div>
+    </div>
+
+    <!-- 已完成區 -->
+    <div id="doneSection" style="display:none;">
+      <div class="section-title" style="margin-top:28px;opacity:0.7;">
+        ✅ 已完成
+        <span class="count" id="doneCount">0</span>
+      </div>
+      <div id="doneList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 新增按鈕 -->
+<button class="add-btn" onclick="openAddModal()">➕ 新增任務</button>
+
+<!-- 新增/編輯彈窗 -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-title" id="modalTitle">新增任務</div>
+    <div class="modal-group">
+      <label class="modal-label">任務標題 *</label>
+      <input type="text" class="modal-input" id="inputTitle" placeholder="例如：修改 admin 首頁...">
+    </div>
+    <div class="modal-group">
+      <label class="modal-label">系統標籤</label>
+      <div class="tag-group" id="tagGroup">
+        <div class="tag-option" data-tag="🔴 主系統">🔴 主系統</div>
+        <div class="tag-option" data-tag="🔵 購物">🔵 購物</div>
+        <div class="tag-option" data-tag="🟣 尊爵">🟣 尊爵</div>
+        <div class="tag-option" data-tag="⚙️ 設定">⚙️ 設定</div>
+        <div class="tag-option" data-tag="💡 想法">💡 想法</div>
+      </div>
+    </div>
+    <div class="modal-group">
+      <label class="modal-label">備註（可填）</label>
+      <textarea class="modal-textarea" id="inputNote" placeholder="細節、網址或注意事項..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" id="saveBtn" onclick="saveTodo()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxDhISu2Gv5EEc0-4utuD2_6SxPM0ihpR7RlgIwl5W1D42xzZzYgjS0nfqWUQk-XYOIdw/exec';
+
+let todos = [];
+let editingId = null;
+let selectedTag = '';
+
+// ==================== 初始化 ====================
+document.addEventListener('DOMContentLoaded', () => {
+  loadTodos();
+  // 標籤選擇
+  document.querySelectorAll('.tag-option').forEach(el => {
+    el.addEventListener('click', () => {
+      document.querySelectorAll('.tag-option').forEach(e => e.classList.remove('selected'));
+      el.classList.add('selected');
+      selectedTag = el.dataset.tag;
+    });
+  });
+});
+
+// ==================== 載入任務 ====================
+async function loadTodos() {
+  try {
+    const res = await fetch(GAS_URL + '?action=getTodos&t=' + Date.now(), { cache: 'no-store' });
+    const data = await res.json();
+    if (data.ok) {
+      todos = data.todos || [];
+      renderTodos();
+    } else {
+      showToast('載入失敗：' + (data.msg || ''));
+    }
+  } catch (err) {
+    showToast('網路錯誤，請稍後再試');
+    console.error(err);
+  } finally {
+    document.getElementById('loadingScreen').style.display = 'none';
+    document.getElementById('todoContent').style.display = 'block';
+  }
+}
+
+// ==================== 渲染 ====================
+function renderTodos() {
+  const pinned = todos.filter(t => t.status === 'todo' && t.pinned);
+  const pending = todos.filter(t => t.status === 'todo' && !t.pinned);
+  const done = todos.filter(t => t.status === 'done');
+
+  // 置頂區
+  document.getElementById('pinnedCount').textContent = pinned.length;
+  document.getElementById('pinnedSection').style.display = pinned.length ? 'block' : 'none';
+  document.getElementById('pinnedList').innerHTML = pinned.map(renderCard).join('') || '';
+
+  // 待辦區
+  document.getElementById('todoCount').textContent = pending.length;
+  document.getElementById('todoList').innerHTML = pending.length
+    ? pending.map(renderCard).join('')
+    : '<div class="empty-state">🎉 沒有待辦任務！</div>';
+
+  // 已完成區
+  document.getElementById('doneCount').textContent = done.length;
+  document.getElementById('doneSection').style.display = done.length ? 'block' : 'none';
+  // 最近完成的排前面
+  done.sort((a, b) => (b.completedAt || '').localeCompare(a.completedAt || ''));
+  document.getElementById('doneList').innerHTML = done.slice(0, 10).map(renderCard).join('');
+}
+
+function renderCard(todo) {
+  const pinnedClass = todo.pinned ? ' pinned' : '';
+  const doneClass = todo.status === 'done' ? ' done' : '';
+  const tagClass = getTagClass(todo.tag);
+  const noteHtml = todo.note ? '<div class="todo-note">' + escapeHtml(todo.note) + '</div>' : '';
+  const timeHtml = todo.status === 'done' && todo.completedAt
+    ? '<div class="todo-time">✅ ' + todo.completedAt.substring(5, 16) + '</div>'
+    : todo.createdAt
+    ? '<div class="todo-time">📅 ' + todo.createdAt.substring(5, 16) + '</div>'
+    : '';
+
+  const actionsHtml = todo.status === 'done'
+    ? '<div class="todo-actions">' +
+      '<button class="todo-btn del" onclick="deleteTodo(\'' + todo.id + '\')">🗑️</button>' +
+      '</div>'
+    : '<div class="todo-actions">' +
+      '<button class="todo-btn pin" onclick="togglePin(\'' + todo.id + '\', ' + (!todo.pinned) + ')">' + (todo.pinned ? '📌' : '📍') + '</button>' +
+      '<button class="todo-btn del" onclick="deleteTodo(\'' + todo.id + '\')">🗑️</button>' +
+      '</div>';
+
+  return '' +
+    '<div class="todo-card' + pinnedClass + doneClass + '">' +
+      '<div class="todo-checkbox" onclick="toggleDone(\'' + todo.id + '\', \'' + todo.status + '\')">' +
+        (todo.status === 'done' ? '✓' : '') +
+      '</div>' +
+      '<div class="todo-content">' +
+        (todo.tag ? '<div class="todo-tag ' + tagClass + '">' + escapeHtml(todo.tag) + '</div>' : '') +
+        '<div class="todo-title">' + escapeHtml(todo.title) + '</div>' +
+        noteHtml +
+        timeHtml +
+      '</div>' +
+      actionsHtml +
+    '</div>';
+}
+
+function getTagClass(tag) {
+  if (tag.includes('主系統')) return 'red';
+  if (tag.includes('購物')) return 'blue';
+  if (tag.includes('尊爵')) return 'purple';
+  return 'gray';
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+}
+
+// ==================== 操作 ====================
+function openAddModal() {
+  editingId = null;
+  document.getElementById('modalTitle').textContent = '新增任務';
+  document.getElementById('inputTitle').value = '';
+  document.getElementById('inputNote').value = '';
+  selectedTag = '';
+  document.querySelectorAll('.tag-option').forEach(e => e.classList.remove('selected'));
+  document.getElementById('modalOverlay').classList.add('active');
+  setTimeout(() => document.getElementById('inputTitle').focus(), 100);
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('active');
+}
+
+async function saveTodo() {
+  const title = document.getElementById('inputTitle').value.trim();
+  const note = document.getElementById('inputNote').value.trim();
+  if (!title) { showToast('請輸入任務標題'); return; }
+
+  const btn = document.getElementById('saveBtn');
+  btn.disabled = true;
+  btn.textContent = '儲存中...';
+
+  try {
+    const params = new URLSearchParams({
+      action: 'addTodo',
+      title: title,
+      tag: selectedTag,
+      note: note,
+    });
+    const res = await fetch(GAS_URL + '?' + params.toString(), { cache: 'no-store' });
+    const data = await res.json();
+    if (data.ok) {
+      showToast('✨ 已新增');
+      closeModal();
+      await loadTodos();
+    } else {
+      showToast('新增失敗：' + (data.msg || ''));
+    }
+  } catch (err) {
+    showToast('網路錯誤');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '儲存';
+  }
+}
+
+async function toggleDone(id, currentStatus) {
+  const newStatus = currentStatus === 'done' ? 'todo' : 'done';
+  try {
+    const params = new URLSearchParams({ action: 'updateTodo', id: id, status: newStatus });
+    const res = await fetch(GAS_URL + '?' + params.toString(), { cache: 'no-store' });
+    const data = await res.json();
+    if (data.ok) {
+      showToast(newStatus === 'done' ? '🎉 完成！' : '↩️ 已取消完成');
+      await loadTodos();
+    }
+  } catch (err) { showToast('操作失敗'); }
+}
+
+async function togglePin(id, pin) {
+  try {
+    const params = new URLSearchParams({ action: 'updateTodo', id: id, pinned: pin });
+    const res = await fetch(GAS_URL + '?' + params.toString(), { cache: 'no-store' });
+    const data = await res.json();
+    if (data.ok) {
+      showToast(pin ? '🔥 已置頂' : '已取消置頂');
+      await loadTodos();
+    }
+  } catch (err) { showToast('操作失敗'); }
+}
+
+async function deleteTodo(id) {
+  if (!confirm('確定要刪除這個任務嗎？')) return;
+  try {
+    const params = new URLSearchParams({ action: 'deleteTodo', id: id });
+    const res = await fetch(GAS_URL + '?' + params.toString(), { cache: 'no-store' });
+    const data = await res.json();
+    if (data.ok) {
+      showToast('已刪除');
+      await loadTodos();
+    }
+  } catch (err) { showToast('操作失敗'); }
+}
+
+// ==================== 提示 ====================
+let toastTimer = null;
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('show'), 2000);
+}
+
+// 點背景關閉彈窗
+document.getElementById('modalOverlay').addEventListener('click', (e) => {
+  if (e.target.id === 'modalOverlay') closeModal();
+});
+</script>
+</body>
+</html>
