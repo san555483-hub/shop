@@ -518,22 +518,41 @@ function renderSummary() {
     (state.note ? '<div class="summary-row"><span class="summary-label">備註</span><span class="summary-value">' + state.note + '</span></div>' : '');
 }
 
+// 【2026-04-18 強化】防撞單送出 — 新增「正在送出中」旗標防連點
+let __isSubmitting = false;
+
 async function submitBooking() {
+  // 防連點：如果已經在送出，直接忽略
+  if (__isSubmitting) return;
+  __isSubmitting = true;
+
   const loading = document.getElementById('loadingSubmit');
   const errMsg = document.getElementById('errorMsg4');
   const btn = document.getElementById('btnSubmit');
-  loading.style.display = 'block'; btn.disabled = true; errMsg.style.display = 'none';
+  loading.style.display = 'block';
+  btn.disabled = true;
+  btn.textContent = '送出中，請稍候...';
+  errMsg.style.display = 'none';
   const dateStr = state.date ? formatDate(state.date) : '';
   const serviceStr = state.services.map(s => s.name).join('、');
+
+  // 送出前先用輕量 API 驗證時段是否還可用（更快）
   try {
-    const checkRes = await fetch(GAS_URL + '?action=getBookedSlots&date=' + dateStr + '&t=' + Date.now(), { cache: 'no-store' });
+    const checkRes = await fetch(GAS_URL + '?action=checkSlot&date=' + dateStr + '&time=' + encodeURIComponent(normalizeTime(state.time)) + '&t=' + Date.now(), { cache: 'no-store' });
     const checkData = await checkRes.json();
-    const latest = new Set((checkData.slots || []).map(normalizeTime));
-    if (latest.has(normalizeTime(state.time))) {
-      errMsg.textContent = '此時段剛剛已被預約，請返回重新選擇時間';
-      errMsg.style.display = 'block'; btn.disabled = false; loading.style.display = 'none'; return;
+    if (checkData.ok && checkData.available === false) {
+      const reason = checkData.reason === 'booked'
+        ? '😢 很抱歉，此時段剛剛被其他客人選走了\n請返回上一步重新選擇其他時間 🙏'
+        : '此時段已被鎖定，請返回重新選擇時間';
+      errMsg.textContent = reason;
+      errMsg.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = '確認送出預約';
+      loading.style.display = 'none';
+      __isSubmitting = false;
+      return;
     }
-  } catch (_) {}
+  } catch (_) { /* 網路錯誤時不擋，讓後端 LockService 處理 */ }
   const params = new URLSearchParams({
     action: 'booking', name: state.name, phone: state.phone, service: serviceStr,
     date: dateStr, time: normalizeTime(state.time || ''), note: state.note,
@@ -551,18 +570,24 @@ async function submitBooking() {
       showSuccess(data.bookingId);
     } else if (data.msg === 'blacklisted') {
       errMsg.textContent = data.blMsg || '請改由 Elsa 為您現場安排預約，謝謝您 🙏';
-      errMsg.style.display = 'block'; btn.disabled = false;
+      errMsg.style.display = 'block';
+      btn.disabled = false; btn.textContent = '確認送出預約'; __isSubmitting = false;
     } else if (data.msg === 'slot_taken') {
-      errMsg.textContent = '此時段已被預約，請返回重新選擇時間';
-      errMsg.style.display = 'block'; btn.disabled = false;
+      errMsg.textContent = '😢 很抱歉，此時段剛剛被其他客人選走了\n請返回上一步重新選擇其他時間 🙏';
+      errMsg.style.display = 'block';
+      btn.disabled = false; btn.textContent = '確認送出預約'; __isSubmitting = false;
     } else if (data.msg === 'missing_fields') {
       errMsg.textContent = '資料未填完整，請重新確認';
-      errMsg.style.display = 'block'; btn.disabled = false;
+      errMsg.style.display = 'block';
+      btn.disabled = false; btn.textContent = '確認送出預約'; __isSubmitting = false;
     } else {
-      errMsg.style.display = 'block'; btn.disabled = false;
+      errMsg.style.display = 'block';
+      btn.disabled = false; btn.textContent = '確認送出預約'; __isSubmitting = false;
     }
   } catch (_) {
-    loading.style.display = 'none'; errMsg.style.display = 'block'; btn.disabled = false;
+    loading.style.display = 'none';
+    errMsg.style.display = 'block';
+    btn.disabled = false; btn.textContent = '確認送出預約'; __isSubmitting = false;
   }
 }
 
