@@ -379,6 +379,75 @@ body {
   margin-top: 8px;
   display: none;
 }
+
+/* 搜尋 + 篩選區 */
+.filter-bar {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 14px;
+}
+.search-input {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-family: inherit;
+  background: var(--bg);
+  color: var(--text);
+  outline: none;
+  margin-bottom: 8px;
+}
+.search-input:focus { border-color: var(--gold); }
+.filter-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.filter-chip {
+  padding: 5px 11px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  font-size: 11px;
+  cursor: pointer;
+  background: var(--surface);
+  color: var(--muted);
+  transition: all 0.15s;
+  user-select: none;
+}
+.filter-chip.active {
+  border-color: var(--gold);
+  background: var(--gold);
+  color: white;
+  font-weight: 500;
+}
+.filter-chip.active.red { background: #c0392b; border-color: #c0392b; }
+.filter-chip.active.blue { background: #1976d2; border-color: #1976d2; }
+.filter-chip.active.purple { background: #7b1fa2; border-color: #7b1fa2; }
+.filter-clear {
+  font-size: 11px;
+  color: var(--muted);
+  cursor: pointer;
+  margin-left: auto;
+  padding: 4px 8px;
+  text-decoration: underline;
+  display: none;
+}
+
+/* 任務可點擊樣式（編輯用） */
+.todo-content { cursor: pointer; }
+.todo-content:active { opacity: 0.7; }
+
+/* 複製按鈕 */
+.todo-btn.copy { color: var(--gold-dark); }
+
+/* 編輯模式標題 */
+.modal-title.edit-mode::before { content: "✏️ "; }
+
+/* 刪除按鈕在編輯彈窗 */
+.btn-danger {
+  background: #fee;
+  color: var(--red);
+  border: 1px solid #f5c6c2;
+}
 </style>
 </head>
 <body>
@@ -396,6 +465,19 @@ body {
     <div>載入中...</div>
   </div>
   <div id="todoContent" style="display:none;">
+    <!-- 搜尋 + 篩選 -->
+    <div class="filter-bar">
+      <input type="text" class="search-input" id="searchInput" placeholder="🔍 搜尋任務標題或備註...">
+      <div class="filter-chips">
+        <span class="filter-chip red" data-filter="🔴 主系統">🔴 主系統</span>
+        <span class="filter-chip blue" data-filter="🔵 購物">🔵 購物</span>
+        <span class="filter-chip purple" data-filter="🟣 尊爵">🟣 尊爵</span>
+        <span class="filter-chip" data-filter="⚙️ 設定">⚙️ 設定</span>
+        <span class="filter-chip" data-filter="💡 想法">💡 想法</span>
+        <span class="filter-clear" id="filterClear" onclick="clearAllFilters()">✕ 清除</span>
+      </div>
+    </div>
+
     <!-- 置頂區 -->
     <div id="pinnedSection" style="display:none;">
       <div class="section-title">
@@ -452,6 +534,7 @@ body {
     </div>
     <div class="modal-actions">
       <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+      <button class="btn btn-danger" id="editDeleteBtn" onclick="deleteFromEdit()" style="display:none;">刪除</button>
       <button class="btn btn-primary" id="saveBtn" onclick="saveTodo()">儲存</button>
     </div>
   </div>
@@ -505,11 +588,13 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbxDhISu2Gv5EEc0-4utuD2_
 let todos = [];
 let editingId = null;
 let selectedTag = '';
+let activeFilters = [];  // 當前啟用的分類篩選（可多選）
+let searchKeyword = '';  // 搜尋關鍵字
 
 // ==================== 初始化 ====================
 document.addEventListener('DOMContentLoaded', () => {
   loadTodos();
-  // 標籤選擇
+  // 標籤選擇（新增/編輯彈窗用）
   document.querySelectorAll('.tag-option').forEach(el => {
     el.addEventListener('click', () => {
       document.querySelectorAll('.tag-option').forEach(e => e.classList.remove('selected'));
@@ -517,7 +602,67 @@ document.addEventListener('DOMContentLoaded', () => {
       selectedTag = el.dataset.tag;
     });
   });
+  // 篩選 chip
+  document.querySelectorAll('.filter-chip').forEach(el => {
+    el.addEventListener('click', () => {
+      const tag = el.dataset.filter;
+      if (activeFilters.includes(tag)) {
+        activeFilters = activeFilters.filter(t => t !== tag);
+        el.classList.remove('active');
+      } else {
+        activeFilters.push(tag);
+        el.classList.add('active');
+      }
+      updateFilterClearBtn();
+      renderTodos();
+    });
+  });
+  // 搜尋框
+  document.getElementById('searchInput').addEventListener('input', (e) => {
+    searchKeyword = e.target.value.trim().toLowerCase();
+    updateFilterClearBtn();
+    renderTodos();
+  });
 });
+
+function updateFilterClearBtn() {
+  const hasFilter = activeFilters.length > 0 || searchKeyword !== '';
+  document.getElementById('filterClear').style.display = hasFilter ? 'inline-block' : 'none';
+}
+
+function clearAllFilters() {
+  activeFilters = [];
+  searchKeyword = '';
+  document.getElementById('searchInput').value = '';
+  document.querySelectorAll('.filter-chip').forEach(el => el.classList.remove('active'));
+  updateFilterClearBtn();
+  renderTodos();
+}
+
+// 套用篩選 + 搜尋
+function applyFilters(list) {
+  return list.filter(t => {
+    // 分類篩選
+    if (activeFilters.length > 0 && !activeFilters.includes(t.tag)) return false;
+    // 搜尋
+    if (searchKeyword) {
+      const hay = (t.title + ' ' + (t.note || '')).toLowerCase();
+      if (!hay.includes(searchKeyword)) return false;
+    }
+    return true;
+  });
+}
+
+// 7 天前的時間戳
+function isWithin7Days(dateStr) {
+  if (!dateStr) return true;
+  try {
+    const d = new Date(dateStr.replace(/-/g, '/'));
+    const now = new Date();
+    const diff = (now - d) / (1000 * 60 * 60 * 24);
+    return diff <= 7;
+  } catch (e) { return true; }
+}
 
 // ==================== 載入任務 ====================
 async function loadTodos() {
@@ -541,9 +686,13 @@ async function loadTodos() {
 
 // ==================== 渲染 ====================
 function renderTodos() {
-  const pinned = todos.filter(t => t.status === 'todo' && t.pinned);
-  const pending = todos.filter(t => t.status === 'todo' && !t.pinned);
-  const done = todos.filter(t => t.status === 'done');
+  // 先套用篩選+搜尋
+  const filtered = applyFilters(todos);
+
+  const pinned = filtered.filter(t => t.status === 'todo' && t.pinned);
+  const pending = filtered.filter(t => t.status === 'todo' && !t.pinned);
+  // 已完成：套用 7 天自動隱藏
+  let done = filtered.filter(t => t.status === 'done' && isWithin7Days(t.completedAt));
 
   // 置頂區
   document.getElementById('pinnedCount').textContent = pinned.length;
@@ -552,16 +701,16 @@ function renderTodos() {
 
   // 待辦區
   document.getElementById('todoCount').textContent = pending.length;
+  const hasFilter = activeFilters.length > 0 || searchKeyword !== '';
   document.getElementById('todoList').innerHTML = pending.length
     ? pending.map(renderCard).join('')
-    : '<div class="empty-state">🎉 沒有待辦任務！</div>';
+    : '<div class="empty-state">' + (hasFilter ? '🔍 沒有符合條件的任務' : '🎉 沒有待辦任務！') + '</div>';
 
-  // 已完成區
+  // 已完成區（7 天自動隱藏）
   document.getElementById('doneCount').textContent = done.length;
   document.getElementById('doneSection').style.display = done.length ? 'block' : 'none';
-  // 最近完成的排前面
   done.sort((a, b) => (b.completedAt || '').localeCompare(a.completedAt || ''));
-  document.getElementById('doneList').innerHTML = done.slice(0, 10).map(renderCard).join('');
+  document.getElementById('doneList').innerHTML = done.slice(0, 20).map(renderCard).join('');
 }
 
 function renderCard(todo) {
@@ -577,19 +726,21 @@ function renderCard(todo) {
 
   const actionsHtml = todo.status === 'done'
     ? '<div class="todo-actions">' +
-      '<button class="todo-btn del" onclick="deleteTodo(\'' + todo.id + '\')">🗑️</button>' +
+      '<button class="todo-btn copy" onclick="event.stopPropagation();duplicateTodo(\'' + todo.id + '\')" title="複製">📋</button>' +
+      '<button class="todo-btn del" onclick="event.stopPropagation();deleteTodo(\'' + todo.id + '\')">🗑️</button>' +
       '</div>'
     : '<div class="todo-actions">' +
-      '<button class="todo-btn pin" onclick="togglePin(\'' + todo.id + '\', ' + (!todo.pinned) + ')">' + (todo.pinned ? '📌' : '📍') + '</button>' +
-      '<button class="todo-btn del" onclick="deleteTodo(\'' + todo.id + '\')">🗑️</button>' +
+      '<button class="todo-btn pin" onclick="event.stopPropagation();togglePin(\'' + todo.id + '\', ' + (!todo.pinned) + ')">' + (todo.pinned ? '📌' : '📍') + '</button>' +
+      '<button class="todo-btn copy" onclick="event.stopPropagation();duplicateTodo(\'' + todo.id + '\')" title="複製">📋</button>' +
+      '<button class="todo-btn del" onclick="event.stopPropagation();deleteTodo(\'' + todo.id + '\')">🗑️</button>' +
       '</div>';
 
   return '' +
     '<div class="todo-card' + pinnedClass + doneClass + '">' +
-      '<div class="todo-checkbox" onclick="toggleDone(\'' + todo.id + '\', \'' + todo.status + '\')">' +
+      '<div class="todo-checkbox" onclick="event.stopPropagation();toggleDone(\'' + todo.id + '\', \'' + todo.status + '\')">' +
         (todo.status === 'done' ? '✓' : '') +
       '</div>' +
-      '<div class="todo-content">' +
+      '<div class="todo-content" onclick="openEditModal(\'' + todo.id + '\')">' +
         (todo.tag ? '<div class="todo-tag ' + tagClass + '">' + escapeHtml(todo.tag) + '</div>' : '') +
         '<div class="todo-title">' + escapeHtml(todo.title) + '</div>' +
         noteHtml +
@@ -614,12 +765,59 @@ function escapeHtml(s) {
 function openAddModal() {
   editingId = null;
   document.getElementById('modalTitle').textContent = '新增任務';
+  document.getElementById('modalTitle').classList.remove('edit-mode');
   document.getElementById('inputTitle').value = '';
   document.getElementById('inputNote').value = '';
+  document.getElementById('editDeleteBtn').style.display = 'none';
   selectedTag = '';
   document.querySelectorAll('.tag-option').forEach(e => e.classList.remove('selected'));
   document.getElementById('modalOverlay').classList.add('active');
   setTimeout(() => document.getElementById('inputTitle').focus(), 100);
+}
+
+// 編輯模式
+function openEditModal(id) {
+  const todo = todos.find(t => t.id === id);
+  if (!todo) return;
+  editingId = id;
+  document.getElementById('modalTitle').textContent = '編輯任務';
+  document.getElementById('modalTitle').classList.add('edit-mode');
+  document.getElementById('inputTitle').value = todo.title || '';
+  document.getElementById('inputNote').value = todo.note || '';
+  document.getElementById('editDeleteBtn').style.display = 'block';
+  selectedTag = todo.tag || '';
+  document.querySelectorAll('.tag-option').forEach(e => {
+    e.classList.toggle('selected', e.dataset.tag === todo.tag);
+  });
+  document.getElementById('modalOverlay').classList.add('active');
+}
+
+// 從編輯彈窗刪除
+async function deleteFromEdit() {
+  if (!editingId) return;
+  if (!confirm('確定要刪除這個任務嗎？')) return;
+  closeModal();
+  await deleteTodo(editingId);
+}
+
+// 複製任務
+async function duplicateTodo(id) {
+  const todo = todos.find(t => t.id === id);
+  if (!todo) return;
+  try {
+    const params = new URLSearchParams({
+      action: 'addTodo',
+      title: todo.title + '（複製）',
+      tag: todo.tag || '',
+      note: todo.note || '',
+    });
+    const res = await fetch(GAS_URL + '?' + params.toString(), { cache: 'no-store' });
+    const data = await res.json();
+    if (data.ok) {
+      showToast('📋 已複製');
+      await loadTodos();
+    }
+  } catch (err) { showToast('複製失敗'); }
 }
 
 function closeModal() {
@@ -636,20 +834,33 @@ async function saveTodo() {
   btn.textContent = '儲存中...';
 
   try {
-    const params = new URLSearchParams({
-      action: 'addTodo',
-      title: title,
-      tag: selectedTag,
-      note: note,
-    });
+    let params;
+    if (editingId) {
+      // 編輯模式
+      params = new URLSearchParams({
+        action: 'updateTodo',
+        id: editingId,
+        title: title,
+        tag: selectedTag,
+        note: note,
+      });
+    } else {
+      // 新增模式
+      params = new URLSearchParams({
+        action: 'addTodo',
+        title: title,
+        tag: selectedTag,
+        note: note,
+      });
+    }
     const res = await fetch(GAS_URL + '?' + params.toString(), { cache: 'no-store' });
     const data = await res.json();
     if (data.ok) {
-      showToast('✨ 已新增');
+      showToast(editingId ? '✏️ 已更新' : '✨ 已新增');
       closeModal();
       await loadTodos();
     } else {
-      showToast('新增失敗：' + (data.msg || ''));
+      showToast('儲存失敗：' + (data.msg || ''));
     }
   } catch (err) {
     showToast('網路錯誤');
