@@ -386,6 +386,7 @@ body {
 <div class="header">
   <div class="header-logo">📋 UNI 進度追蹤</div>
   <div class="header-sub">TASK MANAGER</div>
+  <button class="tool-btn" onclick="openClaudeModal()" title="產生 Claude 指令" style="right:60px;">💬</button>
   <button class="tool-btn" onclick="openImportModal()" title="批次匯入">📥</button>
 </div>
 
@@ -476,6 +477,22 @@ body {
     <div class="modal-actions">
       <button class="btn btn-secondary" onclick="closeImportModal()">取消</button>
       <button class="btn btn-primary" id="importBtn" onclick="doImport()">匯入</button>
+    </div>
+  </div>
+</div>
+
+<!-- 💬 產生 Claude 指令彈窗 -->
+<div class="modal-overlay" id="claudeModalOverlay">
+  <div class="modal">
+    <div class="modal-title">💬 產生 Claude 指令</div>
+    <div class="import-hint">
+      📋 自動產出可直接貼到新對話的指令<br>
+      ✨ 包含工作原則、API、今日進度摘要
+    </div>
+    <textarea class="import-textarea" id="claudeText" readonly style="min-height:280px;font-size:11px;"></textarea>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeClaudeModal()">關閉</button>
+      <button class="btn btn-primary" id="copyClaudeBtn" onclick="copyClaudeText()">📋 複製</button>
     </div>
   </div>
 </div>
@@ -776,6 +793,105 @@ async function doImport() {
     closeImportModal();
   }, 1500);
 }
+
+// ==================== 💬 產生 Claude 指令 ====================
+function openClaudeModal() {
+  const text = generateClaudePrompt();
+  document.getElementById('claudeText').value = text;
+  document.getElementById('claudeModalOverlay').classList.add('active');
+}
+
+function closeClaudeModal() {
+  document.getElementById('claudeModalOverlay').classList.remove('active');
+}
+
+function generateClaudePrompt() {
+  const now = new Date();
+  const dateStr = now.getFullYear() + '-' +
+    String(now.getMonth() + 1).padStart(2, '0') + '-' +
+    String(now.getDate()).padStart(2, '0');
+  const weekNames = ['日', '一', '二', '三', '四', '五', '六'];
+  const weekday = weekNames[now.getDay()];
+
+  // 統計目前進度
+  const pinned = todos.filter(t => t.status === 'todo' && t.pinned);
+  const pending = todos.filter(t => t.status === 'todo' && !t.pinned);
+  const done = todos.filter(t => t.status === 'done');
+
+  // 今日已完成（今天的日期）
+  const todayDone = done.filter(t => (t.completedAt || '').startsWith(dateStr));
+
+  // 產出文字
+  let text = '';
+  text += '嗨 Claude，我是 Elsa（UNI髮型設計沙龍一人工作室老闆）。\n';
+  text += '今天是 ' + dateStr + '（' + weekday + '）。\n';
+  text += '\n';
+  text += '=== 我的進度追蹤 API（請先撈資料了解進度）===\n';
+  text += GAS_URL + '?action=getTodos\n';
+  text += '\n';
+  text += '=== 我的工作原則（必讀，以此為基準效率，只能更好）===\n';
+  text += '1. 絕不動舊系統，新功能「包一層」方式加\n';
+  text += '2. 一次一個開發任務，避免半成品堆積\n';
+  text += '3. 檔案必須明確標示系統：🔴 主系統 / 🔵 購物 / 🟣 尊爵\n';
+  text += '4. 完整檔案交付，一鍵複製上傳（不給片段）\n';
+  text += '5. 每次完成必附會議記錄：改了什麼 / 哪些檔案 / 下一步\n';
+  text += '6. 估時必切開「我產出」與「你操作」\n';
+  text += '7. 不給藉口，直接給最快解法（要圖叫她找 Gemini）\n';
+  text += '8. 需要檔案主動說哪個系統哪個檔，不讓 Elsa 猜\n';
+  text += '9. 不問「要不要休息」，Elsa 做到斷電為止\n';
+  text += '10. 開工前複述計畫，用 Code Execution 精準整合\n';
+  text += '\n';
+  text += '=== 目前系統狀態 ===\n';
+  text += '• 主系統：已做電話防護 + 防撞單 + Push→Reply 改造\n';
+  text += '• LINE 額度：已用 reply 改造，預估新月 ~155 則（200 免費）\n';
+  text += '• Rich Menu：三頁切換已測通\n';
+  text += '• 進度追蹤：此系統獨立運作中\n';
+  text += '\n';
+  text += '=== 絕對禁區 ===\n';
+  text += '• 不碰追蹤關懷系統（sendLineFollowUp）\n';
+  text += '• 不碰尊爵 VIP GAS\n';
+  text += '• 不動電話防護機制\n';
+  text += '• 不給「部分程式碼」\n';
+  text += '\n';
+  text += '=== 今日進度摘要 ===\n';
+  text += '🔥 今天必做：' + pinned.length + ' 筆\n';
+  pinned.forEach(t => { text += '   • [' + (t.tag || '') + '] ' + t.title + '\n'; });
+  text += '📋 待辦：' + pending.length + ' 筆\n';
+  pending.slice(0, 5).forEach(t => { text += '   • [' + (t.tag || '') + '] ' + t.title + '\n'; });
+  if (pending.length > 5) text += '   ...（還有 ' + (pending.length - 5) + ' 筆）\n';
+  text += '✅ 今日已完成：' + todayDone.length + ' 筆\n';
+  todayDone.forEach(t => { text += '   • [' + (t.tag || '') + '] ' + t.title + '\n'; });
+  text += '\n';
+  text += '=== 我現在想做 ===\n';
+  text += '（請在這行下方寫你今天想做什麼）\n';
+
+  return text;
+}
+
+async function copyClaudeText() {
+  const text = document.getElementById('claudeText').value;
+  const btn = document.getElementById('copyClaudeBtn');
+  try {
+    await navigator.clipboard.writeText(text);
+    btn.textContent = '✅ 已複製';
+    showToast('📋 已複製到剪貼簿，貼到新對話即可！');
+    setTimeout(() => { btn.textContent = '📋 複製'; }, 2000);
+  } catch (err) {
+    // 備用方案：選取文字讓使用者手動複製
+    const textarea = document.getElementById('claudeText');
+    textarea.select();
+    textarea.setSelectionRange(0, 99999);
+    document.execCommand('copy');
+    btn.textContent = '✅ 已複製';
+    showToast('📋 已複製！');
+    setTimeout(() => { btn.textContent = '📋 複製'; }, 2000);
+  }
+}
+
+// 點背景關閉
+document.getElementById('claudeModalOverlay').addEventListener('click', (e) => {
+  if (e.target.id === 'claudeModalOverlay') closeClaudeModal();
+});
 </script>
 </body>
 </html>
